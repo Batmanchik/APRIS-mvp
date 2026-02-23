@@ -1,0 +1,38 @@
+[
+  {
+    "feature": "gini_coefficient",
+    "importance": 0.34703974231812845
+  },
+  {
+    "feature": "transaction_entropy",
+    "importance": 0.2396688529196685
+  },
+  {
+    "feature": "growth_rate",
+    "importance": 0.1472846283350458
+  },
+  {
+    "feature": "referral_ratio",
+    "importance": 0.06950127987167297
+  },
+  {
+    "feature": "avg_holding_time",
+    "importance": 0.061898324114698165
+  },
+  {
+    "feature": "structural_depth",
+    "importance": 0.04922297610534048
+  },
+  {
+    "feature": "payout_dependency",
+    "importance": 0.03957975299901804
+  },
+  {
+    "feature": "centralization_index",
+    "importance": 0.02999367954130762
+  },
+  {
+    "feature": "reinvestment_rate",
+    "importance": 0.01581076379511988
+  }
+]

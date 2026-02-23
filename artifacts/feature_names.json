@@ -1,0 +1,11 @@
+[
+  "growth_rate",
+  "referral_ratio",
+  "payout_dependency",
+  "centralization_index",
+  "avg_holding_time",
+  "reinvestment_rate",
+  "gini_coefficient",
+  "transaction_entropy",
+  "structural_depth"
+]
