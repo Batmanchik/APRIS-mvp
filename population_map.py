@@ -29,29 +29,29 @@ FEATURE_COLUMNS = [
 def load_feature_names(path: str | Path = FEATURE_NAMES_PATH) -> list[str]:
     p = Path(path)
     if not p.exists():
-        raise FileNotFoundError(f"Feature names file not found: {p}")
+        raise FileNotFoundError(f"Файл feature_names не найден: {p}")
     return json.loads(p.read_text(encoding="utf-8"))
 
 
 def load_population_dataset(path: str | Path = DATASET_PATH) -> pd.DataFrame:
     p = Path(path)
     if not p.exists():
-        raise FileNotFoundError(f"Population dataset not found: {p}")
+        raise FileNotFoundError(f"Синтетический датасет популяции не найден: {p}")
     df = pd.read_csv(p)
 
     required = FEATURE_COLUMNS + ["label", "is_borderline"]
     missing = [c for c in required if c not in df.columns]
     if missing:
-        raise ValueError(f"Population dataset missing columns: {missing}")
+        raise ValueError(f"В датасете популяции отсутствуют колонки: {missing}")
     return df
 
 
 def check_no_nan(df: pd.DataFrame, feature_names: list[str]) -> None:
     arr = df[feature_names].to_numpy(dtype=float)
     if np.isnan(arr).any():
-        raise ValueError("Population dataset contains NaN in feature columns.")
+        raise ValueError("В датасете популяции есть NaN в колонках признаков.")
     if not np.isfinite(arr).all():
-        raise ValueError("Population dataset contains Inf values in feature columns.")
+        raise ValueError("В датасете популяции есть Inf в колонках признаков.")
 
 
 def check_feature_order(feature_names: list[str]) -> bool:
@@ -96,11 +96,11 @@ def project_current_case(
 
 def check_pca_dimensions(projected: pd.DataFrame, pca: PCA) -> None:
     if projected.shape[1] < 4:
-        raise ValueError("Projected dataframe does not contain expected columns.")
+        raise ValueError("PCA-проекция не содержит ожидаемых колонок.")
     if pca.n_components_ != 2:
-        raise ValueError(f"PCA has invalid n_components_: {pca.n_components_}")
+        raise ValueError(f"Некорректное значение n_components_ у PCA: {pca.n_components_}")
     if "PCA1" not in projected.columns or "PCA2" not in projected.columns:
-        raise ValueError("Projected dataframe must contain PCA1 and PCA2.")
+        raise ValueError("PCA-проекция должна содержать PCA1 и PCA2.")
 
 
 def build_population_map_figure(
@@ -119,7 +119,7 @@ def build_population_map_figure(
         s=22,
         alpha=0.45,
         color="#2563EB",
-        label="legit",
+        label="легит",
         edgecolors="none",
     )
     ax.scatter(
@@ -128,7 +128,7 @@ def build_population_map_figure(
         s=24,
         alpha=0.45,
         color="#DC2626",
-        label="pyramid",
+        label="пирамида",
         edgecolors="none",
     )
     ax.scatter(
@@ -137,7 +137,7 @@ def build_population_map_figure(
         s=34,
         alpha=0.72,
         color="#F59E0B",
-        label="borderline",
+        label="пограничные",
         marker="^",
         edgecolors="white",
         linewidths=0.3,
@@ -152,15 +152,14 @@ def build_population_map_figure(
             marker="X",
             linewidths=1.4,
             edgecolors="white",
-            label="current_case",
+            label="текущий кейс",
             zorder=10,
         )
 
-    ax.set_title("Population Risk Map")
+    ax.set_title("Карта рисков популяции")
     ax.set_xlabel("PCA1")
     ax.set_ylabel("PCA2")
     ax.legend(loc="best", frameon=True)
     ax.grid(alpha=0.22)
     fig.tight_layout()
     return fig
-

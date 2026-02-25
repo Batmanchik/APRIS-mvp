@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
-import matplotlib.pyplot as plt
-import networkx as nx
-import numpy as np
+import matplotlib.pyplot as plt  # type: ignore
+import networkx as nx  # type: ignore
+import numpy as np  # type: ignore
 
-from data_generator import SEED
+from data_generator import SEED  # type: ignore
 
 
 def _clamp(value: float, low: float, high: float) -> float:
@@ -52,7 +52,7 @@ def build_transaction_graph(
     possible_sources = list(range(1, node_count))
     rng.shuffle(possible_sources)
     extra_hub_edges = int(centralization * (node_count - 1))
-    for src in possible_sources[:extra_hub_edges]:
+    for src in possible_sources[:extra_hub_edges]:  # type: ignore
         graph.add_edge(src, hub)
 
     # Small amount of random traffic edges for realism.
@@ -70,8 +70,8 @@ def compute_hub_metrics(graph: nx.DiGraph) -> dict[str, float | int]:
     if graph.number_of_nodes() == 0:
         return {"hub_node": -1, "hub_in_degree_share": 0.0, "hub_betweenness": 0.0}
 
-    in_degrees = dict(graph.in_degree())
-    hub_node = max(in_degrees, key=in_degrees.get)
+    in_degrees: dict[int, int] = {int(k): int(v) for k, v in graph.in_degree()}  # type: ignore
+    hub_node = max(in_degrees.keys(), key=lambda k: in_degrees[k])
     total_in = float(sum(in_degrees.values()))
     hub_in = float(in_degrees[hub_node])
     hub_share = 0.0 if total_in == 0 else hub_in / total_in
@@ -86,8 +86,8 @@ def compute_hub_metrics(graph: nx.DiGraph) -> dict[str, float | int]:
 
 def plot_graph(graph: nx.DiGraph, hub_node: int | None = None) -> plt.Figure:
     if hub_node is None:
-        in_degrees = dict(graph.in_degree())
-        hub_node = max(in_degrees, key=in_degrees.get) if in_degrees else -1
+        in_degrees: dict[int, int] = {int(k): int(v) for k, v in graph.in_degree()}  # type: ignore
+        hub_node = max(in_degrees.keys(), key=lambda k: in_degrees[k]) if in_degrees else -1
 
     pos = nx.spring_layout(graph, seed=SEED)
     colors = ["#d62728" if node == hub_node else "#1f77b4" for node in graph.nodes]
@@ -96,6 +96,6 @@ def plot_graph(graph: nx.DiGraph, hub_node: int | None = None) -> plt.Figure:
     fig, ax = plt.subplots(figsize=(8, 5))
     nx.draw_networkx_nodes(graph, pos, node_color=colors, node_size=sizes, ax=ax, alpha=0.9)
     nx.draw_networkx_edges(graph, pos, edge_color="#8a8a8a", width=0.6, alpha=0.6, ax=ax, arrows=False)
-    ax.set_title("Synthetic Transaction Graph")
+    ax.set_title("Синтетический граф транзакций")
     ax.axis("off")
     return fig

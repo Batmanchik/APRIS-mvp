@@ -4,4 +4,7 @@ __pycache__/
 .DS_Store
 .idea/
 .vscode/
-
+backups/
+logs/
+.run/
+restore/

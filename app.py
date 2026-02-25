@@ -1,17 +1,19 @@
 from __future__ import annotations
 
+import base64
 from pathlib import Path
 from typing import Any
+from io import BytesIO
 
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import streamlit as st
-from sklearn.metrics import accuracy_score, confusion_matrix, roc_auc_score
+import matplotlib.pyplot as plt  # type: ignore
+import numpy as np  # type: ignore
+import pandas as pd  # type: ignore
+import streamlit as st  # type: ignore
+from sklearn.metrics import accuracy_score, confusion_matrix, roc_auc_score  # type: ignore
 
-from data_generator import FEATURE_BOUNDS, FEATURE_COLUMNS, RISK_THRESHOLDS, generate_live_batch
+from data_generator import FEATURE_BOUNDS, FEATURE_COLUMNS, RISK_THRESHOLDS, generate_live_batch  # type: ignore
 from graph_module import build_transaction_graph, compute_hub_metrics, plot_graph
-from population_map import (
+from population_map import (  # type: ignore
     build_population_map_figure,
     check_feature_order,
     check_no_nan,
@@ -21,7 +23,7 @@ from population_map import (
     load_population_dataset,
     project_current_case,
 )
-from risk_engine import (
+from risk_engine import (  # type: ignore
     FEATURE_NAMES_PATH,
     MODEL_PATH,
     OPERATIONAL_INPUT_BOUNDS,
@@ -120,41 +122,41 @@ LEGIT_COLOR = "#1D4ED8"
 PYRAMID_COLOR = "#DC2626"
 
 FEATURE_LABELS = {
-    "growth_rate": "growth_rate",
-    "referral_ratio": "referral_ratio",
-    "payout_dependency": "payout_dependency",
-    "centralization_index": "centralization_index",
-    "avg_holding_time": "avg_holding_time (days, observed window)",
-    "reinvestment_rate": "reinvestment_rate",
-    "gini_coefficient": "gini_coefficient",
-    "transaction_entropy": "transaction_entropy",
-    "structural_depth": "structural_depth",
+    "growth_rate": "Темп роста вкладчиков",
+    "referral_ratio": "Доля реферальных участников",
+    "payout_dependency": "Зависимость выплат от притока",
+    "centralization_index": "Индекс централизации",
+    "avg_holding_time": "Среднее удержание средств (дни)",
+    "reinvestment_rate": "Доля повторных вложений",
+    "gini_coefficient": "Коэффициент Джини",
+    "transaction_entropy": "Транзакционная энтропия",
+    "structural_depth": "Глубина структуры",
 }
 
 OPERATIONAL_LABELS = {
-    "tx_count_total": "transactions_count_total",
-    "unique_counterparties": "unique_counterparties",
-    "new_clients_current": "new_clients_current_period",
-    "new_clients_previous": "new_clients_previous_period",
-    "referred_clients_current": "referred_clients_current_period",
-    "incoming_funds": "incoming_funds_total",
-    "payouts_total": "payouts_total",
-    "top1_wallet_share": "top1_wallet_share",
-    "top10_wallet_share": "top10_wallet_share",
-    "avg_holding_days": "avg_holding_days",
-    "repeat_investor_share": "repeat_investor_share",
-    "max_referral_depth": "max_referral_depth",
+    "tx_count_total": "Общее число транзакций",
+    "unique_counterparties": "Уникальные контрагенты",
+    "new_clients_current": "Новые клиенты (текущий период)",
+    "new_clients_previous": "Новые клиенты (предыдущий период)",
+    "referred_clients_current": "Реферальные клиенты (текущий период)",
+    "incoming_funds": "Общий входящий поток средств",
+    "payouts_total": "Общий объем выплат",
+    "top1_wallet_share": "Доля топ-1 кошелька",
+    "top10_wallet_share": "Доля топ-10 кошельков",
+    "avg_holding_days": "Среднее удержание (дни)",
+    "repeat_investor_share": "Доля повторных инвесторов",
+    "max_referral_depth": "Макс. глубина реферальной структуры",
 }
 
 
 def _guard_streamlit_entrypoint() -> None:
     try:
-        from streamlit.runtime.scriptrunner import get_script_run_ctx
+        from streamlit.runtime.scriptrunner import get_script_run_ctx  # type: ignore
 
         ctx = get_script_run_ctx(suppress_warning=True)
         if ctx is None:
-            print("This is a Streamlit app.")
-            print("Run it with: streamlit run app.py")
+            print("Это приложение Streamlit.")
+            print("Запустите его так: streamlit run app.py")
             raise SystemExit(0)
     except Exception:
         return
@@ -164,110 +166,237 @@ def _set_style() -> None:
     st.markdown(
         """
         <style>
-            html, body, .stApp, .stApp p, .stApp li, .stApp label, .stApp h1, .stApp h2, .stApp h3, .stApp h4 {
-                font-family: "Trebuchet MS", "Segoe UI", sans-serif;
-                color: #0f172a !important;
+            :root {
+                --apris-border-soft: rgba(226, 232, 240, 0.8);
+                --background-color: #f8fafc;
+                --secondary-background-color: #ffffff;
+                --text-color: #0f172a;
+                --primary-color: #6366f1; /* Indigo */
+                --primary-hover: #4f46e5;
+                --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+                --card-shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
             }
+            /* Global Font Settings */
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+            html, body, .stApp {
+                font-family: 'Inter', sans-serif !important;
+                color: var(--text-color) !important;
+                background-color: var(--background-color) !important;
+                -webkit-font-smoothing: antialiased;
+            }
+            /* Clean up background */
             .stApp {
-                background:
-                    radial-gradient(1200px 500px at -20% -10%, #d1ecff 0%, transparent 60%),
-                    radial-gradient(900px 480px at 120% 0%, #ffe9d4 0%, transparent 50%),
-                    linear-gradient(180deg, #f8fbff 0%, #eef5fb 100%);
+                background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
             }
+            .stApp p, .stApp li, .stApp label, .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp span,
+            [data-testid="stMarkdownContainer"], [data-testid="stCaptionContainer"], .stMarkdown, .stCaption {
+                color: var(--text-color) !important;
+            }
+            /* Headings */
+            .stApp h1 {
+                font-weight: 800 !important;
+                letter-spacing: -0.025em;
+                background: linear-gradient(90deg, #312e81, #6366f1);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                margin-bottom: 0.5rem;
+            }
+            .stApp h2, .stApp h3, .stApp h4 {
+                font-weight: 700 !important;
+                letter-spacing: -0.015em;
+                color: #1e293b !important;
+            }
+            /* Header and navigation clean up */
             header[data-testid="stHeader"] {
-                background: rgba(248, 251, 255, 0.88) !important;
-                border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+                background: transparent !important;
+                box-shadow: none !important;
             }
-            [data-testid="collapsedControl"] {
-                display: none;
+            [data-testid="stToolbar"], [data-testid="collapsedControl"], [data-testid="stSidebar"] {
+                display: none !important;
             }
-            [data-testid="stSidebar"] {
-                display: none;
-            }
+            /* Buttons */
             div.stButton > button, div.stFormSubmitButton > button {
-                background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%) !important;
-                color: #0f172a !important;
-                border: 1px solid #94a3b8 !important;
-                border-radius: 10px !important;
+                background: var(--secondary-background-color);
+                color: #334155;
+                border: 1px solid var(--apris-border-soft);
+                border-radius: 12px !important;
                 font-weight: 600 !important;
-                min-height: 40px !important;
+                min-height: 48px !important;
+                padding: 0 1.5rem !important;
+                transition: all 0.2s ease-in-out !important;
+                box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
             }
             div.stButton > button:hover, div.stFormSubmitButton > button:hover {
-                border-color: #0b6e99 !important;
-                color: #0b6e99 !important;
+                border-color: #cbd5e1 !important;
+                background-color: #f8fafc !important;
+                color: #0f172a !important;
+                transform: translateY(-1px);
+                box-shadow: var(--card-shadow);
             }
             div[data-testid="stFormSubmitButton"] button[kind="primary"],
             div.stButton > button[kind="primary"] {
-                background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%) !important;
+                background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%) !important;
                 color: #ffffff !important;
-                border: 1px solid #b91c1c !important;
+                border: none !important;
+                box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.4), 0 2px 4px -2px rgba(99, 102, 241, 0.4) !important;
             }
+            div[data-testid="stFormSubmitButton"] button[kind="primary"]:hover,
+            div.stButton > button[kind="primary"]:hover {
+                box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.5), 0 4px 6px -4px rgba(99, 102, 241, 0.5) !important;
+                transform: translateY(-2px);
+            }
+            div[data-testid="stFormSubmitButton"] button[kind="primary"]:active,
+            div.stButton > button[kind="primary"]:active {
+                transform: translateY(0);
+            }
+            /* Metrics Cards */
             [data-testid="stMetric"] {
-                background: rgba(255,255,255,0.80);
-                border: 1px solid rgba(15,23,42,0.08);
-                border-radius: 12px;
-                padding: 8px 10px;
+                background: rgba(255, 255, 255, 0.7);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.5);
+                border-radius: 16px;
+                padding: 1rem 1.25rem;
+                box-shadow: var(--card-shadow);
+                transition: transform 0.2s ease, box-shadow 0.2s ease;
+            }
+            [data-testid="stMetric"]:hover {
+                transform: translateY(-2px);
+                box-shadow: var(--card-shadow-hover);
             }
             [data-testid="stMetricLabel"] {
-                color: #475569 !important;
+                color: #64748b !important;
+                font-size: 0.875rem !important;
+                font-weight: 500 !important;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                margin-bottom: 0.25rem;
             }
             [data-testid="stMetricValue"] {
                 color: #0f172a !important;
                 font-weight: 800 !important;
+                font-size: 2rem !important;
+                line-height: 1 !important;
             }
-            [data-baseweb="tab-list"] button {
-                color: #0f172a !important;
+            /* Tabs styling */
+            [data-baseweb="tab-list"] {
+                gap: 1rem;
+                border-bottom: 2px solid #e2e8f0;
+            }
+            [data-baseweb="tab"] {
+                padding-top: 1rem !important;
+                padding-bottom: 1rem !important;
+            }
+            [data-baseweb="tab"] p {
                 font-weight: 600;
+                font-size: 1.05rem;
+                color: #64748b !important;
+            }
+            [aria-selected="true"] p {
+                color: var(--primary-color) !important;
+            }
+            [data-baseweb="tab-highlight"] {
+                background-color: var(--primary-color) !important;
+                height: 3px !important;
+                border-radius: 3px 3px 0 0 !important;
             }
             [data-baseweb="tab-panel"] {
-                background: rgba(255,255,255,0.60);
-                border-radius: 12px;
-                padding: 10px 12px 16px 12px;
+                background: transparent;
+                padding: 1.5rem 0;
             }
+            /* Data tables */
             [data-testid="stDataFrame"], [data-testid="stTable"] {
-                background: #ffffff !important;
-                border: 1px solid rgba(15,23,42,0.08);
-                border-radius: 10px;
+                border: none !important;
+                border-radius: 16px;
+                overflow: hidden;
+                box-shadow: var(--card-shadow);
+                background: white;
             }
+            /* Main Content Cards */
             .apris-card {
-                background: rgba(255,255,255,0.86);
-                border: 1px solid rgba(15, 23, 42, 0.10);
-                border-radius: 14px;
-                padding: 14px 16px;
-                box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+                background: rgba(255, 255, 255, 0.9);
+                backdrop-filter: blur(12px);
+                border: 1px solid rgba(255, 255, 255, 0.6);
+                border-radius: 20px;
+                padding: 1.5rem 2rem;
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+                margin-bottom: 1.5rem;
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
             }
-            .apris-chip {
-                display: inline-block;
-                background: #0b6e9920;
-                color: #0b6e99;
-                border: 1px solid #0b6e9944;
-                border-radius: 999px;
-                padding: 4px 10px;
-                margin-right: 6px;
-                font-size: 13px;
-                font-weight: 600;
+            .apris-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
             }
+            /* Input fields styling */
+            [data-baseweb="input"], [data-baseweb="base-input"] {
+                background: #f8fafc !important;
+                border: 1px solid #cbd5e1 !important;
+                border-radius: 12px !important;
+                transition: all 0.2s ease;
+            }
+            [data-baseweb="input"]:focus-within, [data-baseweb="base-input"]:focus-within {
+                border-color: var(--primary-color) !important;
+                box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
+                background: #ffffff !important;
+            }
+            [data-baseweb="input"] input, [data-baseweb="base-input"] input {
+                color: #0f172a !important;
+                -webkit-text-fill-color: #0f172a !important;
+                font-weight: 500 !important;
+                font-size: 1rem !important;
+            }
+            /* Risk banners */
             .risk-banner {
-                border-radius: 12px;
-                padding: 12px 14px;
-                margin-bottom: 8px;
-                border: 1px solid rgba(15, 23, 42, 0.12);
-                font-weight: 600;
+                border-radius: 16px;
+                padding: 1rem 1.5rem;
+                margin-bottom: 1.5rem;
+                font-weight: 700;
+                font-size: 1.125rem;
+                display: flex;
+                align-items: center;
+                box-shadow: var(--card-shadow);
+            }
+            .risk-banner::before {
+                content: '';
+                display: inline-block;
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                margin-right: 12px;
             }
             .risk-banner-low {
-                background: #dcfce7;
-                color: #166534 !important;
-                border-color: #86efac;
+                background: linear-gradient(to right, #ecfdf5, #d1fae5);
+                color: #065f46 !important;
+                border: 1px solid #10b981;
             }
+            .risk-banner-low::before { background-color: #10b981; box-shadow: 0 0 8px #10b981; }
             .risk-banner-medium {
-                background: #ffedd5;
-                color: #9a3412 !important;
-                border-color: #fdba74;
+                background: linear-gradient(to right, #fffbeb, #fef3c7);
+                color: #b45309 !important;
+                border: 1px solid #f59e0b;
             }
+            .risk-banner-medium::before { background-color: #f59e0b; box-shadow: 0 0 8px #f59e0b; }
             .risk-banner-high {
-                background: #fee2e2;
-                color: #991b1b !important;
-                border-color: #fca5a5;
+                background: linear-gradient(to right, #fef2f2, #fee2e2);
+                color: #b91c1c !important;
+                border: 1px solid #ef4444;
+            }
+            .risk-banner-high::before { background-color: #ef4444; box-shadow: 0 0 8px #ef4444; }
+            
+            /* Expanders */
+            [data-testid="stExpander"] {
+                border: 1px solid #e2e8f0;
+                border-radius: 16px;
+                background: white;
+                box-shadow: var(--card-shadow);
+                overflow: hidden;
+            }
+            [data-testid="stExpander"] > details > summary {
+                padding: 1rem 1.5rem;
+                font-weight: 600;
+                background: #f8fafc;
+            }
+            [data-testid="stExpander"] > details > summary:hover {
+                background: #f1f5f9;
             }
         </style>
         """,
@@ -279,6 +408,7 @@ def _apply_matplotlib_theme() -> None:
     plt.style.use("seaborn-v0_8-whitegrid")
     plt.rcParams.update(
         {
+            "figure.facecolor": "none",
             "axes.facecolor": "#FFFFFF",
             "axes.edgecolor": "#E2E8F0",
             "axes.grid": True,
@@ -286,20 +416,37 @@ def _apply_matplotlib_theme() -> None:
             "grid.color": "#334155",
             "axes.titleweight": "bold",
             "font.size": 10,
+            "text.color": "#0F172A",
+            "axes.labelcolor": "#0F172A",
+            "xtick.color": "#0F172A",
+            "ytick.color": "#0F172A",
         }
     )
 
 
+def _render_figure_inline(fig: plt.Figure, width: str = "100%") -> None:
+    buffer = BytesIO()
+    fig.savefig(buffer, format="png", dpi=150, bbox_inches="tight")
+    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+    st.markdown(
+        f"<img src='data:image/png;base64,{encoded}' style='width:{width};height:auto;display:block;' />",
+        unsafe_allow_html=True,
+    )
+    plt.close(fig)
+
+
 def _ensure_model_available() -> tuple[Any, list[str]]:
     if not Path(MODEL_PATH).exists() or not Path(FEATURE_NAMES_PATH).exists():
-        st.error("Model not found. Run training first.")
+        st.error("Модель не найдена. Сначала запустите обучение.")
         st.code("python train_model.py")
         st.stop()
+        raise RuntimeError("Stopped by Streamlit")
     try:
         return load_artifacts()
     except Exception as exc:
-        st.error(f"Failed to load model artifacts: {exc}")
+        st.error(f"Ошибка загрузки артефактов модели: {exc}")
         st.stop()
+        raise RuntimeError("Stopped by Streamlit")
 
 
 @st.cache_data(show_spinner=False)
@@ -313,7 +460,7 @@ def _load_population_projection_cached() -> tuple[pd.DataFrame, Any, Any, list[s
     dataset = load_population_dataset()
     check_no_nan(dataset, feature_names)
     if not check_feature_order(feature_names):
-        raise ValueError("feature_names.json order does not match expected model feature schema.")
+        raise ValueError("Порядок признаков в feature_names.json не совпадает с ожидаемой схемой.")
     projected, scaler, pca = fit_population_pca(dataset, feature_names)
     check_pca_dimensions(projected, pca)
     return projected, scaler, pca, feature_names
@@ -327,7 +474,7 @@ def _ensure_defaults() -> None:
         if name not in st.session_state:
             st.session_state[name] = val
     if "input_source_mode" not in st.session_state:
-        st.session_state["input_source_mode"] = "Operational facts (recommended)"
+        st.session_state["input_source_mode"] = "Операционные факты (рекомендуется)"
 
 
 def _set_preset(name: str) -> None:
@@ -339,19 +486,31 @@ def _set_preset(name: str) -> None:
 
 def _risk_band(prob: float) -> str:
     if prob >= RISK_THRESHOLDS["high"]:
-        return "High"
+        return "Высокий"
     if prob >= RISK_THRESHOLDS["medium"]:
-        return "Medium"
-    return "Low"
+        return "Средний"
+    return "Низкий"
 
 
 def _risk_css_class(level: str) -> str:
     level_norm = level.lower()
-    if level_norm == "low":
+    if level_norm in {"low", "низкий"}:
         return "risk-banner risk-banner-low"
-    if level_norm == "medium":
+    if level_norm in {"medium", "средний"}:
         return "risk-banner risk-banner-medium"
     return "risk-banner risk-banner-high"
+
+
+def _translate_risk_level(level: str) -> str:
+    mapping = {
+        "low": "Низкий",
+        "medium": "Средний",
+        "high": "Высокий",
+        "низкий": "Низкий",
+        "средний": "Средний",
+        "высокий": "Высокий",
+    }
+    return mapping.get(level.lower(), level)
 
 
 def _sample_population_case(dataset: pd.DataFrame) -> dict[str, float]:
@@ -385,26 +544,26 @@ def _score_live_batch(df: pd.DataFrame, model: Any) -> dict[str, Any]:
 
 
 def _render_input_guide() -> None:
-    with st.expander("How to input data", expanded=False):
+    with st.expander("Как вводить данные", expanded=False):
         st.markdown(
             """
-            1. Use **Operational facts (recommended)** if you have transaction facts from monitoring systems.
-            2. Fill values for current period.
-            3. Click **Score Case**.
-            4. Check:
-            - Risk probability and risk level
-            - Dynamic case-signal chart
-            - Transaction graph concentration metrics
+            1. Выберите **Операционные факты (рекомендуется)**, если есть факты из мониторинга.
+            2. Заполните значения за текущий период.
+            3. Нажмите **Оценить кейс**.
+            4. Проверьте:
+            - Вероятность риска и уровень риска
+            - Динамический разбор сигналов кейса
+            - Метрики концентрации транзакционного графа
             """
         )
         st.caption(
-            "Validation rules: referred_clients_current <= new_clients_current, "
+            "Правила валидации: referred_clients_current <= new_clients_current, "
             "top1_wallet_share <= top10_wallet_share."
         )
 
 
 def _render_operational_input_main() -> tuple[dict[str, float], dict[str, float]]:
-    st.markdown("#### Operational facts")
+    st.markdown("#### Операционные факты")
     cols = st.columns(3)
     raw: dict[str, float] = {}
     int_fields = {
@@ -435,8 +594,8 @@ def _render_operational_input_main() -> tuple[dict[str, float], dict[str, float]
             elif key in money_fields:
                 val = st.number_input(
                     label,
-                    min_value=float(low),
-                    max_value=float(high),
+                    min_value=low,
+                    max_value=high,
                     value=float(current),
                     step=1000.0,
                     format="%.2f",
@@ -445,8 +604,8 @@ def _render_operational_input_main() -> tuple[dict[str, float], dict[str, float]
             else:
                 val = st.number_input(
                     label,
-                    min_value=float(low),
-                    max_value=float(high),
+                    min_value=low,
+                    max_value=high,
                     value=float(current),
                     step=0.0001,
                     format="%.4f",
@@ -460,10 +619,10 @@ def _render_operational_input_main() -> tuple[dict[str, float], dict[str, float]
 
 
 def _render_feature_input_main() -> dict[str, float]:
-    st.markdown("#### Model features (advanced)")
+    st.markdown("#### Признаки модели (расширенный режим)")
     mode = st.radio(
-        "Input precision",
-        ["Precise inputs", "Quick sliders"],
+        "Режим ввода",
+        ["Точный ввод", "Быстрые слайдеры"],
         horizontal=True,
         index=0,
         key="feature_input_mode",
@@ -476,7 +635,7 @@ def _render_feature_input_main() -> dict[str, float]:
         label = FEATURE_LABELS[feature]
         with cols[idx % 3]:
             if feature == "structural_depth":
-                if mode == "Precise inputs":
+                if mode == "Точный ввод":
                     val = st.number_input(
                         label,
                         min_value=int(low),
@@ -499,11 +658,11 @@ def _render_feature_input_main() -> dict[str, float]:
                 precise_step = 0.1 if feature == "avg_holding_time" else 0.0001
                 precise_format = "%.1f" if feature == "avg_holding_time" else "%.4f"
                 slider_step = 0.1 if feature == "avg_holding_time" else 0.01
-                if mode == "Precise inputs":
+                if mode == "Точный ввод":
                     val = st.number_input(
                         label,
-                        min_value=float(low),
-                        max_value=float(high),
+                        min_value=low,
+                        max_value=high,
                         value=float(current),
                         step=float(precise_step),
                         format=precise_format,
@@ -512,8 +671,8 @@ def _render_feature_input_main() -> dict[str, float]:
                 else:
                     val = st.slider(
                         label,
-                        min_value=float(low),
-                        max_value=float(high),
+                        min_value=low,
+                        max_value=high,
                         value=float(current),
                         step=float(slider_step),
                         key=f"adv_{feature}",
@@ -555,22 +714,22 @@ def _plot_case_signal_breakdown(
     fig, ax = plt.subplots(figsize=(8.8, 4.8))
     ax.barh(names, values, color=colors)
     ax.invert_yaxis()
-    ax.set_title("Case Signal Breakdown (dynamic)")
-    ax.set_xlabel("Weighted deviation from legit baseline")
+    ax.set_title("Разбор сигналов кейса (динамика)")
+    ax.set_xlabel("Взвешенное отклонение от легитимного baseline")
 
     for idx in range(min(3, len(values))):
         ax.text(
             values[idx] + max(values) * 0.01 if max(values) > 0 else 0.001,
             idx,
-            "TOP",
+            "ТОП",
             va="center",
             fontsize=9,
             color="#991B1B",
             fontweight="bold",
         )
 
-    st.pyplot(fig, clear_figure=True)
-    st.caption("Weighted deviation from legit baseline. Top-3 signals are highlighted.")
+    _render_figure_inline(fig)
+    st.caption("Взвешенное отклонение от легитимного baseline. Выделены топ-3 сигнала.")
 
 
 def _plot_global_feature_importance(feature_names: list[str], importances: np.ndarray) -> None:
@@ -580,9 +739,9 @@ def _plot_global_feature_importance(feature_names: list[str], importances: np.nd
     fig, ax = plt.subplots(figsize=(8.4, 4.4))
     ax.barh(names, values, color="#2563eb")
     ax.invert_yaxis()
-    ax.set_title("Global Feature Importance (model-wide)")
-    ax.set_xlabel("importance")
-    st.pyplot(fig, clear_figure=True)
+    ax.set_title("Глобальная важность признаков (по модели)")
+    ax.set_xlabel("важность")
+    _render_figure_inline(fig)
 
 
 def _plot_feature_gallery(scored: pd.DataFrame, marker_features: dict[str, float] | None = None) -> None:
@@ -592,17 +751,19 @@ def _plot_feature_gallery(scored: pd.DataFrame, marker_features: dict[str, float
         ax = axes[idx]
         legit = scored[scored["label"] == 0][feature].astype(float)
         pyramid = scored[scored["label"] == 1][feature].astype(float)
-        ax.hist(legit, bins=24, alpha=0.55, color=LEGIT_COLOR, density=True, label="legit")
-        ax.hist(pyramid, bins=24, alpha=0.48, color=PYRAMID_COLOR, density=True, label="pyramid")
-        if marker_features is not None and feature in marker_features:
-            ax.axvline(float(marker_features[feature]), color=ALERT_COLOR, linestyle="--", linewidth=2.0)
-        ax.set_title(feature, fontsize=10)
+        ax.hist(legit, bins=24, alpha=0.55, color=LEGIT_COLOR, density=True, label="легит")
+        ax.hist(pyramid, bins=24, alpha=0.48, color=PYRAMID_COLOR, density=True, label="пирамида")
+        if isinstance(marker_features, dict):
+            val = marker_features.get(str(feature))
+            if val is not None:
+                ax.axvline(float(val), color=ALERT_COLOR, linestyle="--", linewidth=2.0)
+        ax.set_title(str(feature), fontsize=10)
         ax.tick_params(labelsize=8)
     handles, labels = axes[0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="upper center", ncol=2, frameon=False)
-    fig.suptitle("Live Feature Gallery: one chart per variable", fontsize=14, fontweight="bold")
+    fig.suptitle("Галерея признаков: отдельный график по каждой переменной", fontsize=14, fontweight="bold")
     fig.tight_layout(rect=[0.02, 0.03, 0.98, 0.95])
-    st.pyplot(fig, clear_figure=True)
+    _render_figure_inline(fig)
 
 
 def _plot_live_confusion_and_scores(scored: pd.DataFrame, cm: list[list[int]]) -> None:
@@ -611,46 +772,106 @@ def _plot_live_confusion_and_scores(scored: pd.DataFrame, cm: list[list[int]]) -
         fig, ax = plt.subplots(figsize=(5.2, 4.6))
         matrix = np.array(cm, dtype=float)
         im = ax.imshow(matrix, cmap="Blues")
-        ax.set_title("Live Batch Confusion Matrix")
-        ax.set_xlabel("Predicted")
-        ax.set_ylabel("Actual")
-        ax.set_xticks([0, 1], labels=["legit", "pyramid"])
-        ax.set_yticks([0, 1], labels=["legit", "pyramid"])
+        ax.set_title("Матрица ошибок (live batch)")
+        ax.set_xlabel("Предсказано")
+        ax.set_ylabel("Факт")
+        ax.set_xticks([0, 1], labels=["легит", "пирамида"])
+        ax.set_yticks([0, 1], labels=["легит", "пирамида"])
         for i in range(2):
             for j in range(2):
                 ax.text(j, i, int(matrix[i, j]), ha="center", va="center", color="#0f172a")
         fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-        st.pyplot(fig, clear_figure=True)
+        _render_figure_inline(fig)
     with c2:
         fig, ax = plt.subplots(figsize=(6.2, 4.6))
         legit_probs = scored[scored["label"] == 0]["risk_prob"]
         pyramid_probs = scored[scored["label"] == 1]["risk_prob"]
-        ax.hist(legit_probs, bins=24, alpha=0.55, color=LEGIT_COLOR, label="legit", density=True)
-        ax.hist(pyramid_probs, bins=24, alpha=0.52, color=PYRAMID_COLOR, label="pyramid", density=True)
+        ax.hist(legit_probs, bins=24, alpha=0.55, color=LEGIT_COLOR, label="легит", density=True)
+        ax.hist(pyramid_probs, bins=24, alpha=0.52, color=PYRAMID_COLOR, label="пирамида", density=True)
         ax.axvline(RISK_THRESHOLDS["medium"], color=ALERT_COLOR, linestyle="--", linewidth=1.8)
         ax.axvline(RISK_THRESHOLDS["high"], color=ALERT_COLOR, linestyle="-.", linewidth=1.8)
-        ax.set_title("Risk Probability Distribution (live batch)")
-        ax.set_xlabel("P(pyramid)")
+        ax.set_title("Распределение вероятности риска (live batch)")
+        ax.set_xlabel("P(пирамида)")
         ax.legend(frameon=False)
-        st.pyplot(fig, clear_figure=True)
+        _render_figure_inline(fig)
 
 
 def _plot_stage_summary(scored: pd.DataFrame) -> None:
-    counts = scored["risk_level"].value_counts().reindex(["Low", "Medium", "High"], fill_value=0)
+    counts = scored["risk_level"].value_counts().reindex(["Низкий", "Средний", "Высокий"], fill_value=0)
     fig, ax = plt.subplots(figsize=(8.2, 3.7))
     ax.bar(counts.index, counts.values, color=[SECONDARY_COLOR, "#D97706", ALERT_COLOR], width=0.58)
-    ax.set_title("Live Batch Risk Levels")
-    ax.set_ylabel("Count")
-    st.pyplot(fig, clear_figure=True)
+    ax.set_title("Уровни риска в live batch")
+    ax.set_ylabel("Количество")
+    _render_figure_inline(fig)
+
+
+def _render_system_guide() -> None:
+    st.subheader("Подробный гид по панели APRIS")
+    st.markdown(
+        """
+        Этот раздел объясняет, что показывает каждый график и зачем он нужен в аналитической работе.
+        """
+    )
+
+    with st.expander("Цель системы", expanded=True):
+        st.markdown(
+            """
+            - APRIS оценивает вероятность того, что финансовая структура имеет пирамидальные признаки.
+            - Система не выносит юридический вердикт, а приоритизирует кейсы для проверки.
+            - Все данные в MVP синтетические, расчеты выполняются локально.
+            """
+        )
+
+    with st.expander("Вкладка: Оценка одного кейса", expanded=True):
+        st.markdown(
+            """
+            1. **Вероятность риска и уровень риска**: итоговый скор конкретного объекта.
+            2. **Топ признаков (глобальная важность)**: какие признаки в целом наиболее значимы для модели.
+            3. **Разбор сигналов кейса (динамика)**:
+               сравнение текущего кейса с легитимным baseline с учетом весов модели.
+               Топ-3 сигнала показывают, что именно «тянет» риск вверх.
+            4. **Синтетический граф транзакций**:
+               модельно-восстановленная структура потоков; визуально показывает концентрацию вокруг hub.
+            5. **hub_in_degree_share / hub_betweenness**:
+               количественная оценка централизации выплат и роли центрального узла.
+            6. **Карта рисков популяции (PCA)**:
+               позиция текущего кейса на фоне синтетической популяции (легит/пирамида/borderline).
+            """
+        )
+
+    with st.expander("Вкладка: Live-демонстрация", expanded=True):
+        st.markdown(
+            """
+            Live-раздел нужен для демонстрации, что система работает не на заранее заготовленных картинках.
+
+            1. Генерируется новый синтетический батч прямо во время демонстрации.
+            2. Модель пересчитывает метрики качества на новом батче:
+               **Recall (pyramid), ROC-AUC, Accuracy, Confusion Matrix**.
+            3. **Матрица ошибок** показывает, где модель ошибается (FP/FN).
+            4. **Распределение вероятностей риска** показывает отделимость классов и влияние порогов 0.4/0.7.
+            5. **Уровни риска в live batch** показывают, как объекты распределяются по Low/Medium/High.
+            6. **Галерея признаков** (по каждой переменной) показывает, как распределения отличаются
+               между легитимными и пирамидальными объектами.
+            """
+        )
+
+    with st.expander("Как интерпретировать результат", expanded=False):
+        st.markdown(
+            """
+            - **Низкий риск (< 0.4)**: сигналов мало, кейс низкого приоритета.
+            - **Средний риск (0.4-0.7)**: есть аномалии, нужен углубленный анализ.
+            - **Высокий риск (>= 0.7)**: выраженный набор признаков пирамидальной схемы, кейс в приоритет.
+            """
+        )
 
 
 def main() -> None:
-    st.set_page_config(page_title="APRIS Stage Demo", layout="wide", initial_sidebar_state="collapsed")
+    st.set_page_config(page_title="APRIS — Система анализа риска", layout="wide", initial_sidebar_state="collapsed")
+    _ensure_defaults()
     _set_style()
     _apply_matplotlib_theme()
 
     model, feature_names = _ensure_model_available()
-    _ensure_defaults()
     population_error: str | None = None
     population_df = pd.DataFrame()
     projected_population = pd.DataFrame()
@@ -660,47 +881,64 @@ def main() -> None:
         population_df = _load_population_df_cached()
         projected_population, pop_scaler, pop_pca, pop_feature_names = _load_population_projection_cached()
         if pop_feature_names != feature_names:
-            raise ValueError("Feature order mismatch between model and population map artifacts.")
+            raise ValueError("Несовпадение порядка признаков модели и карты рисков популяции.")
     except Exception as exc:
         population_error = str(exc)
 
     st.markdown(
-        "<div class='apris-card'><h1 style='margin:0;'>APRIS Live Demonstrator</h1>"
-        "<p style='margin:8px 0 0 0;'>Operational-first case scoring for financial security analysts.</p>"
-        "<span class='apris-chip'>Local model</span>"
-        "<span class='apris-chip'>No external API</span>"
-        "<span class='apris-chip'>Live proof mode</span>"
+        "<div class='apris-card'><h1 style='margin:0;'>APRIS — AI Pyramid Risk Intelligence System</h1>"
+        "<p style='margin:8px 0 0 0;'>Панель поддержки решений для раннего скрининга пирамидных рисков.</p>"
         "</div>",
         unsafe_allow_html=True,
     )
-    st.info(
-        "All data shown in this app is synthetic (generated locally). "
-        "No real personal or financial records are used."
-    )
-    st.caption(
-        "This is a decision-support prototype: it helps prioritize cases, "
-        "but does not replace formal investigation."
-    )
+    intro_left, intro_right = st.columns([1.2, 1])
+    with intro_left:
+        st.markdown(
+            """
+            **Краткая инструкция**
+            1. Выберите источник ввода: операционные факты (рекомендуется) или признаки модели.
+            2. Используйте пресет или введите значения кейса вручную.
+            3. Нажмите кнопку «Оценить кейс» и проверьте:
+            - Вероятность риска и уровень риска
+            - Разбор сигналов кейса (ключевые драйверы)
+            - Синтетический транзакционный граф и hub-метрики
+            - Карта рисков популяции (кейс на фоне синтетической популяции)
+            """
+        )
+        st.info("Все данные в интерфейсе синтетические и генерируются локально. Реальные персональные записи не используются.")
+    with intro_right:
+        st.markdown("#### Формулы и пороги")
+        st.markdown(
+            """
+            `growth_rate = (Новые_клиенты_текущего - Новые_клиенты_предыдущего) / max(Новые_клиенты_предыдущего, 1)`  
+            `referral_ratio = Реферальные_клиенты_текущего / max(Новые_клиенты_текущего, 1)`  
+            `payout_dependency = Общий_объем_выплат / max(Общий_входящий_поток, 1)`  
+            `Risk = P(пирамида | признаки)`
+            """
+        )
+        st.caption("Пороги интерпретации: < 0.4 — низкий риск, 0.4-0.7 — средний, >= 0.7 — высокий.")
 
-    tab_single, tab_live = st.tabs(["Single Object Scoring", "Live Stage Proof"])
+    tab_single, tab_live, tab_guide = st.tabs(
+        ["Оценка одного кейса", "Live-демонстрация", "Как читать систему"]
+    )
 
     with tab_single:
-        st.subheader("Quick presets")
+        st.subheader("Быстрые пресеты")
         p1, p2, p3, p4 = st.columns(4)
-        if p1.button("Preset: Legit", use_container_width=True):
+        if p1.button("Пресет: Легит", use_container_width=True):
             _set_preset("Legit")
-        if p2.button("Preset: Suspicious", use_container_width=True):
+        if p2.button("Пресет: Подозрительно", use_container_width=True):
             _set_preset("Suspicious")
-        if p3.button("Preset: Pyramid", use_container_width=True):
+        if p3.button("Пресет: Пирамида", use_container_width=True):
             _set_preset("Pyramid")
-        if p4.button("Generate Random Case", use_container_width=True):
+        if p4.button("Случайный кейс", use_container_width=True):
             if population_df.empty:
-                st.warning("Population dataset unavailable for random case generation.")
+                st.warning("Синтетический датасет недоступен для генерации случайного кейса.")
             else:
                 sampled_features = _sample_population_case(population_df)
                 for feature in FEATURE_COLUMNS:
                     st.session_state[feature] = float(sampled_features[feature])
-                st.session_state["input_source_mode"] = "Model features (advanced)"
+                st.session_state["input_source_mode"] = "Признаки модели (расширенный режим)"
                 st.session_state["single_result"] = predict_risk(
                     sampled_features, model=model, feature_names=feature_names
                 )
@@ -709,22 +947,22 @@ def main() -> None:
                 )
                 st.session_state["single_features"] = sampled_features
                 st.session_state["single_raw_operational"] = None
-                st.success("Random synthetic case generated and scored.")
+                st.success("Случайный синтетический кейс сгенерирован и оценен.")
 
         _render_input_guide()
         input_source = st.radio(
-            "Input source",
-            ["Operational facts (recommended)", "Model features (advanced)"],
+            "Источник ввода",
+            ["Операционные факты (рекомендуется)", "Признаки модели (расширенный режим)"],
             horizontal=True,
             key="input_source_mode",
         )
 
-        if input_source == "Operational facts (recommended)":
+        if input_source == "Операционные факты (рекомендуется)":
             raw_operational, features = _render_operational_input_main()
         else:
             raw_operational, features = None, _render_feature_input_main()
 
-        if st.button("Score Case", type="primary", use_container_width=True):
+        if st.button("Оценить кейс", type="primary", use_container_width=True):
             try:
                 st.session_state["single_result"] = predict_risk(
                     features, model=model, feature_names=feature_names
@@ -735,7 +973,7 @@ def main() -> None:
                 st.session_state["single_features"] = features
                 st.session_state["single_raw_operational"] = raw_operational
             except Exception as exc:
-                st.error(f"Input validation error: {exc}")
+                st.error(f"Ошибка валидации входных данных: {exc}")
 
         if "single_result" in st.session_state:
             result = st.session_state["single_result"]
@@ -743,29 +981,28 @@ def main() -> None:
             top_features = st.session_state["single_explain"]
             raw_operational_view = st.session_state.get("single_raw_operational")
 
-            level = str(result["label_text"])
+            level = _translate_risk_level(str(result["label_text"]))
             risk_prob = float(result["prob"])
             st.markdown(
                 (
                     f"<div class='{_risk_css_class(level)}'>"
-                    f"Risk probability: {risk_prob:.3f} | Risk level: {level}"
+                    f"Вероятность риска: {risk_prob:.3f} | Уровень риска: {level}"
                     "</div>"
                 ),
                 unsafe_allow_html=True,
             )
-            m1, m2, m3 = st.columns(3)
-            m1.metric("Risk probability", f"{risk_prob:.3f}")
-            m2.metric("Risk level", level)
-            m3.metric("Thresholds", f"{RISK_THRESHOLDS['medium']:.1f} / {RISK_THRESHOLDS['high']:.1f}")
+            _, _, threshold_col = st.columns(3)
+            with threshold_col:
+                st.metric("Пороги", f"{RISK_THRESHOLDS['medium']:.1f} / {RISK_THRESHOLDS['high']:.1f}")
 
-            st.write("Top features (global importance):")
-            st.table(pd.DataFrame(top_features))
+            st.write("Топ признаков (глобальная важность):")
+            st.table(pd.DataFrame(top_features).rename(columns={"feature": "Признак", "importance": "Важность"}))
 
             if raw_operational_view is not None:
-                with st.expander("Derived model features from operational facts", expanded=False):
+                with st.expander("Рассчитанные признаки модели из операционных фактов", expanded=False):
                     st.table(
                         pd.DataFrame(
-                            [{"feature": k, "value": float(v)} for k, v in object_features.items()]
+                            [{"Признак": k, "Значение": float(v)} for k, v in object_features.items()]
                         )
                     )
 
@@ -776,7 +1013,7 @@ def main() -> None:
                     feature_names,
                     np.asarray(model.feature_importances_, dtype=float),
                 )
-                with st.expander("Model-wide global importance (reference)", expanded=False):
+                with st.expander("Глобальная важность по модели (справочно)", expanded=False):
                     _plot_global_feature_importance(
                         feature_names,
                         np.asarray(model.feature_importances_, dtype=float),
@@ -784,15 +1021,16 @@ def main() -> None:
             with c2:
                 graph = build_transaction_graph(object_features)
                 graph_metrics = compute_hub_metrics(graph)
-                st.pyplot(plot_graph(graph, hub_node=int(graph_metrics["hub_node"])), clear_figure=True)
+                graph_fig = plot_graph(graph, hub_node=int(graph_metrics["hub_node"]))
+                _render_figure_inline(graph_fig)
                 g1, g2 = st.columns(2)
-                g1.metric("hub_in_degree_share", f"{graph_metrics['hub_in_degree_share']:.3f}")
-                g2.metric("hub_betweenness", f"{graph_metrics['hub_betweenness']:.3f}")
-                st.caption("High hub concentration may indicate centralized payout structure.")
+                g1.metric("Доля входящих у hub", f"{graph_metrics['hub_in_degree_share']:.3f}")
+                g2.metric("Betweenness hub", f"{graph_metrics['hub_betweenness']:.3f}")
+                st.caption("Высокая концентрация на hub может указывать на централизованную структуру выплат.")
 
-            st.markdown("#### Population Risk Map")
+            st.markdown("#### Карта рисков популяции")
             if population_error is not None or pop_scaler is None or pop_pca is None:
-                st.warning(f"Population map unavailable: {population_error}")
+                st.warning(f"Карта популяции недоступна: {population_error}")
             else:
                 current_point = project_current_case(
                     object_features,
@@ -801,34 +1039,34 @@ def main() -> None:
                     pop_pca,
                 )
                 pop_fig = build_population_map_figure(projected_population, current_point=current_point)
-                st.pyplot(pop_fig, clear_figure=True)
-                st.caption("PCA projection of synthetic population with current case overlay.")
+                _render_figure_inline(pop_fig)
+                st.caption("PCA-проекция синтетической популяции с наложением текущего кейса.")
         else:
-            st.info("Fill values and click 'Score Case'.")
+            st.info("Заполните значения и нажмите «Оценить кейс».")
 
     with tab_live:
-        st.subheader("On-stage synthetic generation")
+        st.subheader("Сценарий live-генерации синтетических данных")
         controls1, controls2, controls3 = st.columns([1, 1, 2])
         with controls1:
             batch_size = st.number_input(
-                "Batch size",
+                "Размер батча",
                 min_value=200,
                 max_value=5000,
                 value=800,
                 step=100,
             )
         with controls2:
-            use_random_seed = st.checkbox("Random seed each run", value=True)
-            manual_seed = st.number_input("Manual seed", min_value=1, max_value=2**31 - 1, value=42)
+            use_random_seed = st.checkbox("Случайный seed при каждом запуске", value=True)
+            manual_seed = st.number_input("Ручной seed", min_value=1, max_value=2**31 - 1, value=42)
         with controls3:
             st.markdown(
-                "<div class='apris-card'><b>Live-proof script:</b> "
-                "Generate fresh synthetic organizations, score with trained model, render updated charts immediately."
+                "<div class='apris-card'><b>Live-сценарий:</b> "
+                "Сгенерировать новый синтетический набор организаций, оценить моделью и сразу отрисовать обновленные графики."
                 "</div>",
                 unsafe_allow_html=True,
             )
 
-        if st.button("Generate New Synthetic Batch Now", type="primary"):
+        if st.button("Сгенерировать новый синтетический батч", type="primary"):
             selected_seed = None if use_random_seed else int(manual_seed)
             live_df, used_seed = generate_live_batch(total_n=int(batch_size), seed=selected_seed)
             payload = _score_live_batch(live_df, model=model)
@@ -849,10 +1087,10 @@ def main() -> None:
         live_seed = st.session_state["live_seed"]
 
         k1, k2, k3, k4 = st.columns(4)
-        k1.metric("Seed used", str(live_seed))
-        k2.metric("Recall (pyramid)", f"{float(live_metrics['recall_pyramid']):.3f}")
+        k1.metric("Использованный seed", str(live_seed))
+        k2.metric("Recall (пирамида)", f"{float(live_metrics['recall_pyramid']):.3f}")
         k3.metric("ROC-AUC", f"{float(live_metrics['roc_auc']):.3f}")
-        k4.metric("Accuracy", f"{float(live_metrics['accuracy']):.3f}")
+        k4.metric("Точность (Accuracy)", f"{float(live_metrics['accuracy']):.3f}")
 
         _plot_live_confusion_and_scores(live_scored, live_metrics["confusion_matrix"])  # type: ignore[arg-type]
         _plot_stage_summary(live_scored)
@@ -862,6 +1100,9 @@ def main() -> None:
 
         preview_cols = FEATURE_COLUMNS + ["label", "pred_label", "risk_prob", "risk_level", "is_borderline"]
         st.dataframe(live_scored[preview_cols].head(25), use_container_width=True)
+
+    with tab_guide:
+        _render_system_guide()
 
 
 if __name__ == "__main__":

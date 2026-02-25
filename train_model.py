@@ -4,15 +4,15 @@ import json
 from pathlib import Path
 from typing import Any
 
-import joblib
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, confusion_matrix, roc_auc_score, roc_curve
-from sklearn.model_selection import train_test_split
+import joblib  # type: ignore
+import matplotlib.pyplot as plt  # type: ignore
+import numpy as np  # type: ignore
+import pandas as pd  # type: ignore
+from sklearn.ensemble import RandomForestClassifier  # type: ignore
+from sklearn.metrics import accuracy_score, confusion_matrix, roc_auc_score, roc_curve  # type: ignore
+from sklearn.model_selection import train_test_split  # type: ignore
 
-from data_generator import FEATURE_COLUMNS, RISK_THRESHOLDS, SEED, build_dataset, validate_dataset
+from data_generator import FEATURE_COLUMNS, RISK_THRESHOLDS, SEED, build_dataset, validate_dataset  # type: ignore
 
 
 ARTIFACTS_DIR = Path("artifacts")
