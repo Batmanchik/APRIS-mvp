@@ -1,4 +1,4 @@
-# AI Pyramid Risk Detection MVP
+﻿# AI Pyramid Risk Detection MVP
 
 ## Overview
 APRIS is a local AI prototype for early detection of financial pyramid schemes.
@@ -32,8 +32,19 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-## App Mode
-This project is intended to be run exclusively as a Web UI via Streamlit.
+## App Mode (Windows)
+- Start from terminal command:
+```powershell
+.\start_app.bat
+```
+- Open separate app-window on demand (without restarting server):
+```powershell
+.\open_app.bat
+```
+- Stop app:
+```powershell
+.\stop_app.bat
+```
 
 ## Limitations
 - Synthetic data only (no real banking data in this MVP).

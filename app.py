@@ -5,15 +5,15 @@ from pathlib import Path
 from typing import Any
 from io import BytesIO
 
-import matplotlib.pyplot as plt  # type: ignore
-import numpy as np  # type: ignore
-import pandas as pd  # type: ignore
-import streamlit as st  # type: ignore
-from sklearn.metrics import accuracy_score, confusion_matrix, roc_auc_score  # type: ignore
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import streamlit as st
+from sklearn.metrics import accuracy_score, confusion_matrix, roc_auc_score
 
-from data_generator import FEATURE_BOUNDS, FEATURE_COLUMNS, RISK_THRESHOLDS, generate_live_batch  # type: ignore
+from data_generator import FEATURE_BOUNDS, FEATURE_COLUMNS, RISK_THRESHOLDS, generate_live_batch
 from graph_module import build_transaction_graph, compute_hub_metrics, plot_graph
-from population_map import (  # type: ignore
+from population_map import (
     build_population_map_figure,
     check_feature_order,
     check_no_nan,
@@ -23,7 +23,7 @@ from population_map import (  # type: ignore
     load_population_dataset,
     project_current_case,
 )
-from risk_engine import (  # type: ignore
+from risk_engine import (
     FEATURE_NAMES_PATH,
     MODEL_PATH,
     OPERATIONAL_INPUT_BOUNDS,
@@ -31,6 +31,17 @@ from risk_engine import (  # type: ignore
     load_artifacts,
     operational_to_features,
     predict_risk,
+)
+from crypto_ponzi.tx_generator import generate_company_transactions, PRESET_ORDER, PRESET_CONFIGS
+from crypto_ponzi.aggregator import aggregate_transactions
+from crypto_ponzi.risk_scorer import compute_crypto_ponzi_score, FACTOR_LABELS_RU
+from crypto_ponzi.explainer import generate_explanation
+from crypto_ponzi.visualizations import (
+    plot_inflow_outflow_timeline,
+    plot_inflow_structure_pie,
+    plot_counterparty_network,
+    plot_factor_contributions,
+    build_metrics_table,
 )
 
 
@@ -115,11 +126,11 @@ OPERATIONAL_PRESETS: dict[str, dict[str, float]] = {
     },
 }
 
-PRIMARY_COLOR = "#0B6E99"
-SECONDARY_COLOR = "#1F9E89"
-ALERT_COLOR = "#C2410C"
-LEGIT_COLOR = "#1D4ED8"
-PYRAMID_COLOR = "#DC2626"
+PRIMARY_COLOR = "#10a37f"
+SECONDARY_COLOR = "#10a37f"
+ALERT_COLOR = "#ef4444"
+LEGIT_COLOR = "#10a37f"
+PYRAMID_COLOR = "#ef4444"
 
 FEATURE_LABELS = {
     "growth_rate": "Темп роста вкладчиков",
@@ -151,7 +162,7 @@ OPERATIONAL_LABELS = {
 
 def _guard_streamlit_entrypoint() -> None:
     try:
-        from streamlit.runtime.scriptrunner import get_script_run_ctx  # type: ignore
+        from streamlit.runtime.scriptrunner import get_script_run_ctx
 
         ctx = get_script_run_ctx(suppress_warning=True)
         if ctx is None:
@@ -165,239 +176,318 @@ def _guard_streamlit_entrypoint() -> None:
 def _set_style() -> None:
     st.markdown(
         """
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
         <style>
             :root {
-                --apris-border-soft: rgba(226, 232, 240, 0.8);
-                --background-color: #f8fafc;
-                --secondary-background-color: #ffffff;
-                --text-color: #0f172a;
-                --primary-color: #6366f1; /* Indigo */
-                --primary-hover: #4f46e5;
-                --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-                --card-shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+                --apris-bg: #ffffff;
+                --apris-surface: #f7f7f8;
+                --apris-border: #e5e5e5;
+                --apris-border-hover: #cdcdcd;
+                --apris-text: #1a1a1a;
+                --apris-text-secondary: #6e6e80;
+                --apris-accent: #10a37f;
+                --apris-accent-hover: #0d8a6a;
+                --apris-accent-light: rgba(16, 163, 127, 0.08);
+                --apris-shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+                --apris-shadow-md: 0 2px 8px rgba(0,0,0,0.06);
+                --apris-shadow-lg: 0 4px 16px rgba(0,0,0,0.08);
+                --apris-radius: 12px;
+                --apris-radius-lg: 16px;
             }
-            /* Global Font Settings */
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+            /* ── Global ── */
             html, body, .stApp {
-                font-family: 'Inter', sans-serif !important;
-                color: var(--text-color) !important;
-                background-color: var(--background-color) !important;
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+                color: var(--apris-text) !important;
                 -webkit-font-smoothing: antialiased;
             }
-            /* Clean up background */
             .stApp {
-                background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+                background: var(--apris-bg) !important;
             }
-            .stApp p, .stApp li, .stApp label, .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp span,
-            [data-testid="stMarkdownContainer"], [data-testid="stCaptionContainer"], .stMarkdown, .stCaption {
-                color: var(--text-color) !important;
+            .stApp p, .stApp li, .stApp label, .stApp span,
+            [data-testid="stMarkdownContainer"], [data-testid="stCaptionContainer"],
+            .stMarkdown, .stCaption {
+                color: var(--apris-text) !important;
+                font-family: 'Inter', -apple-system, sans-serif !important;
             }
-            /* Headings */
+            .stApp p, .stApp li, .stApp label {
+                font-weight: 400 !important;
+                line-height: 1.6 !important;
+                font-size: 0.925rem !important;
+            }
             .stApp h1 {
-                font-weight: 800 !important;
-                letter-spacing: -0.025em;
-                background: linear-gradient(90deg, #312e81, #6366f1);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                margin-bottom: 0.5rem;
-            }
-            .stApp h2, .stApp h3, .stApp h4 {
                 font-weight: 700 !important;
-                letter-spacing: -0.015em;
-                color: #1e293b !important;
+                letter-spacing: -0.02em !important;
+                color: var(--apris-text) !important;
+                font-size: 1.75rem !important;
             }
-            /* Header and navigation clean up */
-            header[data-testid="stHeader"] {
-                background: transparent !important;
-                box-shadow: none !important;
-            }
-            [data-testid="stToolbar"], [data-testid="collapsedControl"], [data-testid="stSidebar"] {
-                display: none !important;
-            }
-            /* Buttons */
-            div.stButton > button, div.stFormSubmitButton > button {
-                background: var(--secondary-background-color);
-                color: #334155;
-                border: 1px solid var(--apris-border-soft);
-                border-radius: 12px !important;
+            .stApp h2 {
                 font-weight: 600 !important;
-                min-height: 48px !important;
-                padding: 0 1.5rem !important;
-                transition: all 0.2s ease-in-out !important;
-                box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+                letter-spacing: -0.01em !important;
+                color: var(--apris-text) !important;
+                font-size: 1.25rem !important;
+            }
+            .stApp h3, .stApp h4 {
+                font-weight: 600 !important;
+                color: var(--apris-text) !important;
+            }
+            .stCaption, [data-testid="stCaptionContainer"] {
+                color: var(--apris-text-secondary) !important;
+            }
+
+            /* ── Header ── */
+            header[data-testid="stHeader"] {
+                background: var(--apris-bg) !important;
+                border-bottom: 1px solid var(--apris-border) !important;
+            }
+            [data-testid="stToolbar"] { display: none; }
+            [data-testid="collapsedControl"] { display: none; }
+            [data-testid="stSidebar"] { display: none; }
+
+            /* ── Buttons ── */
+            div.stButton > button, div.stFormSubmitButton > button {
+                background: var(--apris-bg) !important;
+                color: var(--apris-text) !important;
+                border: 1px solid var(--apris-border) !important;
+                border-radius: 20px !important;
+                font-family: 'Inter', sans-serif !important;
+                font-weight: 500 !important;
+                font-size: 0.875rem !important;
+                min-height: 40px !important;
+                padding: 6px 20px !important;
+                transition: all 0.15s ease !important;
+                box-shadow: var(--apris-shadow-sm) !important;
             }
             div.stButton > button:hover, div.stFormSubmitButton > button:hover {
-                border-color: #cbd5e1 !important;
-                background-color: #f8fafc !important;
-                color: #0f172a !important;
-                transform: translateY(-1px);
-                box-shadow: var(--card-shadow);
+                border-color: var(--apris-border-hover) !important;
+                background: var(--apris-surface) !important;
+                box-shadow: var(--apris-shadow-md) !important;
+                color: var(--apris-text) !important;
             }
             div[data-testid="stFormSubmitButton"] button[kind="primary"],
             div.stButton > button[kind="primary"] {
-                background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%) !important;
+                background: var(--apris-accent) !important;
                 color: #ffffff !important;
-                border: none !important;
-                box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.4), 0 2px 4px -2px rgba(99, 102, 241, 0.4) !important;
+                border: 1px solid var(--apris-accent) !important;
+                font-weight: 600 !important;
             }
             div[data-testid="stFormSubmitButton"] button[kind="primary"]:hover,
             div.stButton > button[kind="primary"]:hover {
-                box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.5), 0 4px 6px -4px rgba(99, 102, 241, 0.5) !important;
-                transform: translateY(-2px);
+                background: var(--apris-accent-hover) !important;
+                border-color: var(--apris-accent-hover) !important;
+                box-shadow: 0 2px 12px rgba(16, 163, 127, 0.25) !important;
             }
-            div[data-testid="stFormSubmitButton"] button[kind="primary"]:active,
-            div.stButton > button[kind="primary"]:active {
-                transform: translateY(0);
-            }
-            /* Metrics Cards */
+
+            /* ── Metric cards ── */
             [data-testid="stMetric"] {
-                background: rgba(255, 255, 255, 0.7);
-                backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 255, 255, 0.5);
-                border-radius: 16px;
-                padding: 1rem 1.25rem;
-                box-shadow: var(--card-shadow);
-                transition: transform 0.2s ease, box-shadow 0.2s ease;
+                background: var(--apris-bg) !important;
+                border: 1px solid var(--apris-border) !important;
+                border-radius: var(--apris-radius) !important;
+                padding: 12px 14px !important;
+                box-shadow: var(--apris-shadow-sm) !important;
+                transition: box-shadow 0.15s ease;
             }
             [data-testid="stMetric"]:hover {
-                transform: translateY(-2px);
-                box-shadow: var(--card-shadow-hover);
+                box-shadow: var(--apris-shadow-md) !important;
             }
             [data-testid="stMetricLabel"] {
-                color: #64748b !important;
-                font-size: 0.875rem !important;
-                font-weight: 500 !important;
-                text-transform: uppercase;
-                letter-spacing: 0.05em;
-                margin-bottom: 0.25rem;
+                color: var(--apris-text-secondary) !important;
+                opacity: 1 !important;
+                font-size: 0.8rem !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.04em !important;
             }
             [data-testid="stMetricValue"] {
-                color: #0f172a !important;
-                font-weight: 800 !important;
-                font-size: 2rem !important;
-                line-height: 1 !important;
+                color: var(--apris-text) !important;
+                font-weight: 700 !important;
+                opacity: 1 !important;
             }
-            /* Tabs styling */
+            [data-testid="stMetricValue"] > div {
+                color: var(--apris-text) !important;
+                opacity: 1 !important;
+            }
+            [data-testid="stMetric"] * { text-shadow: none !important; }
+
+            /* ── Tabs ── */
             [data-baseweb="tab-list"] {
-                gap: 1rem;
-                border-bottom: 2px solid #e2e8f0;
+                gap: 0 !important;
+                border-bottom: 1px solid var(--apris-border) !important;
+                background: transparent !important;
             }
-            [data-baseweb="tab"] {
-                padding-top: 1rem !important;
-                padding-bottom: 1rem !important;
+            [data-baseweb="tab-list"] button {
+                font-family: 'Inter', sans-serif !important;
+                font-weight: 500 !important;
+                font-size: 0.9rem !important;
+                color: var(--apris-text-secondary) !important;
+                border-bottom: 2px solid transparent !important;
+                padding: 10px 20px !important;
+                transition: all 0.15s ease !important;
+                background: transparent !important;
             }
-            [data-baseweb="tab"] p {
-                font-weight: 600;
-                font-size: 1.05rem;
-                color: #64748b !important;
+            [data-baseweb="tab-list"] button:hover {
+                color: var(--apris-text) !important;
             }
-            [aria-selected="true"] p {
-                color: var(--primary-color) !important;
-            }
-            [data-baseweb="tab-highlight"] {
-                background-color: var(--primary-color) !important;
-                height: 3px !important;
-                border-radius: 3px 3px 0 0 !important;
+            [data-baseweb="tab-list"] button[aria-selected="true"] {
+                color: var(--apris-accent) !important;
+                border-bottom-color: var(--apris-accent) !important;
+                font-weight: 600 !important;
             }
             [data-baseweb="tab-panel"] {
-                background: transparent;
-                padding: 1.5rem 0;
+                background: transparent !important;
+                border-radius: 0 !important;
+                padding: 16px 4px !important;
             }
-            /* Data tables */
+            [data-baseweb="tab-highlight"] {
+                background-color: var(--apris-accent) !important;
+            }
+
+            /* ── Tables & DataFrames ── */
             [data-testid="stDataFrame"], [data-testid="stTable"] {
-                border: none !important;
-                border-radius: 16px;
-                overflow: hidden;
-                box-shadow: var(--card-shadow);
-                background: white;
+                border: 1px solid var(--apris-border) !important;
+                border-radius: var(--apris-radius) !important;
+                overflow: hidden !important;
             }
-            /* Main Content Cards */
-            .apris-card {
-                background: rgba(255, 255, 255, 0.9);
-                backdrop-filter: blur(12px);
-                border: 1px solid rgba(255, 255, 255, 0.6);
-                border-radius: 20px;
-                padding: 1.5rem 2rem;
-                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
-                margin-bottom: 1.5rem;
-                transition: transform 0.3s ease, box-shadow 0.3s ease;
-            }
-            .apris-card:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
-            }
-            /* Input fields styling */
+
+            /* ── Input fields — clean light style ── */
             [data-baseweb="input"], [data-baseweb="base-input"] {
-                background: #f8fafc !important;
-                border: 1px solid #cbd5e1 !important;
-                border-radius: 12px !important;
-                transition: all 0.2s ease;
+                background: var(--apris-bg) !important;
+                border: 1px solid var(--apris-border) !important;
+                border-radius: 10px !important;
+                transition: border-color 0.15s ease !important;
             }
             [data-baseweb="input"]:focus-within, [data-baseweb="base-input"]:focus-within {
-                border-color: var(--primary-color) !important;
-                box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
-                background: #ffffff !important;
+                border-color: var(--apris-accent) !important;
+                box-shadow: 0 0 0 3px var(--apris-accent-light) !important;
+            }
+            [data-baseweb="input"] > div, [data-baseweb="base-input"] > div {
+                background: transparent !important;
             }
             [data-baseweb="input"] input, [data-baseweb="base-input"] input {
-                color: #0f172a !important;
-                -webkit-text-fill-color: #0f172a !important;
+                background: transparent !important;
+                color: var(--apris-text) !important;
+                -webkit-text-fill-color: var(--apris-text) !important;
                 font-weight: 500 !important;
-                font-size: 1rem !important;
+                font-family: 'Inter', sans-serif !important;
             }
-            /* Risk banners */
+            [data-baseweb="input"] [role="button"], [data-baseweb="base-input"] [role="button"] {
+                color: var(--apris-text-secondary) !important;
+            }
+
+            /* ── Cards ── */
+            .apris-card {
+                background: var(--apris-surface);
+                border: 1px solid var(--apris-border);
+                border-radius: var(--apris-radius-lg);
+                padding: 20px 24px;
+                box-shadow: var(--apris-shadow-sm);
+            }
+
+            /* ── Hero section ── */
+            .apris-hero {
+                text-align: center;
+                padding: 40px 24px 28px;
+                margin-bottom: 8px;
+            }
+            .apris-hero h1 {
+                font-size: 2rem !important;
+                margin-bottom: 6px !important;
+                letter-spacing: -0.03em !important;
+                color: var(--apris-text) !important;
+            }
+            .apris-hero .apris-subtitle {
+                color: var(--apris-text-secondary);
+                font-size: 1.05rem;
+                margin: 0;
+                font-weight: 400;
+                line-height: 1.5;
+            }
+            .apris-hero .apris-badge {
+                display: inline-block;
+                background: var(--apris-accent-light);
+                color: var(--apris-accent);
+                font-weight: 600;
+                font-size: 0.75rem;
+                padding: 4px 14px;
+                border-radius: 20px;
+                margin-bottom: 14px;
+                letter-spacing: 0.04em;
+                text-transform: uppercase;
+            }
+
+            /* ── Risk banners ── */
             .risk-banner {
-                border-radius: 16px;
-                padding: 1rem 1.5rem;
-                margin-bottom: 1.5rem;
-                font-weight: 700;
-                font-size: 1.125rem;
+                border-radius: var(--apris-radius);
+                padding: 16px 20px;
+                margin-bottom: 12px;
+                font-weight: 600;
+                font-size: 0.95rem;
                 display: flex;
                 align-items: center;
-                box-shadow: var(--card-shadow);
-            }
-            .risk-banner::before {
-                content: '';
-                display: inline-block;
-                width: 12px;
-                height: 12px;
-                border-radius: 50%;
-                margin-right: 12px;
+                gap: 10px;
             }
             .risk-banner-low {
-                background: linear-gradient(to right, #ecfdf5, #d1fae5);
+                background: #ecfdf5;
                 color: #065f46 !important;
-                border: 1px solid #10b981;
+                border: 1px solid #a7f3d0;
             }
-            .risk-banner-low::before { background-color: #10b981; box-shadow: 0 0 8px #10b981; }
             .risk-banner-medium {
-                background: linear-gradient(to right, #fffbeb, #fef3c7);
-                color: #b45309 !important;
-                border: 1px solid #f59e0b;
+                background: #fffbeb;
+                color: #92400e !important;
+                border: 1px solid #fde68a;
             }
-            .risk-banner-medium::before { background-color: #f59e0b; box-shadow: 0 0 8px #f59e0b; }
             .risk-banner-high {
-                background: linear-gradient(to right, #fef2f2, #fee2e2);
-                color: #b91c1c !important;
-                border: 1px solid #ef4444;
+                background: #fef2f2;
+                color: #991b1b !important;
+                border: 1px solid #fecaca;
             }
-            .risk-banner-high::before { background-color: #ef4444; box-shadow: 0 0 8px #ef4444; }
-            
-            /* Expanders */
+            .risk-banner-critical {
+                background: #450a0a;
+                color: #fecaca !important;
+                border: 1px solid #991b1b;
+                animation: pulse-critical 2s ease-in-out infinite;
+            }
+            @keyframes pulse-critical {
+                0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3); }
+                50% { box-shadow: 0 0 12px 4px rgba(239, 68, 68, 0.15); }
+            }
+
+            /* ── Info / warning alerts ── */
+            [data-testid="stAlert"] {
+                border-radius: var(--apris-radius) !important;
+                border: 1px solid var(--apris-border) !important;
+                font-size: 0.875rem !important;
+            }
+
+            /* ── Expanders ── */
             [data-testid="stExpander"] {
-                border: 1px solid #e2e8f0;
-                border-radius: 16px;
-                background: white;
-                box-shadow: var(--card-shadow);
-                overflow: hidden;
+                border: 1px solid var(--apris-border) !important;
+                border-radius: var(--apris-radius) !important;
+                box-shadow: none !important;
             }
-            [data-testid="stExpander"] > details > summary {
-                padding: 1rem 1.5rem;
-                font-weight: 600;
-                background: #f8fafc;
+
+            /* ── Code blocks ── */
+            .stMarkdown code {
+                background: var(--apris-surface) !important;
+                color: var(--apris-text) !important;
+                border: 1px solid var(--apris-border) !important;
+                border-radius: 6px !important;
+                padding: 2px 6px !important;
+                font-size: 0.85rem !important;
             }
-            [data-testid="stExpander"] > details > summary:hover {
-                background: #f1f5f9;
+
+            /* ── Divider ── */
+            hr {
+                border-color: var(--apris-border) !important;
+                opacity: 0.5 !important;
             }
+
+            /* ── Scrollbar ── */
+            ::-webkit-scrollbar { width: 6px; height: 6px; }
+            ::-webkit-scrollbar-track { background: transparent; }
+            ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+            ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
         </style>
         """,
         unsafe_allow_html=True,
@@ -408,18 +498,19 @@ def _apply_matplotlib_theme() -> None:
     plt.style.use("seaborn-v0_8-whitegrid")
     plt.rcParams.update(
         {
-            "figure.facecolor": "none",
-            "axes.facecolor": "#FFFFFF",
-            "axes.edgecolor": "#E2E8F0",
+            "figure.facecolor": "#ffffff",
+            "axes.facecolor": "#ffffff",
+            "axes.edgecolor": "#e5e5e5",
             "axes.grid": True,
-            "grid.alpha": 0.22,
-            "grid.color": "#334155",
+            "grid.alpha": 0.3,
+            "grid.color": "#e5e5e5",
             "axes.titleweight": "bold",
             "font.size": 10,
-            "text.color": "#0F172A",
-            "axes.labelcolor": "#0F172A",
-            "xtick.color": "#0F172A",
-            "ytick.color": "#0F172A",
+            "font.family": "sans-serif",
+            "text.color": "#1a1a1a",
+            "axes.labelcolor": "#1a1a1a",
+            "xtick.color": "#6e6e80",
+            "ytick.color": "#6e6e80",
         }
     )
 
@@ -429,7 +520,7 @@ def _render_figure_inline(fig: plt.Figure, width: str = "100%") -> None:
     fig.savefig(buffer, format="png", dpi=150, bbox_inches="tight")
     encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
     st.markdown(
-        f"<img src='data:image/png;base64,{encoded}' style='width:{width};height:auto;display:block;' />",
+        f"<img src='data:image/png;base64,{encoded}' style='width:{width};height:auto;display:block;border-radius:12px;' />",
         unsafe_allow_html=True,
     )
     plt.close(fig)
@@ -440,13 +531,11 @@ def _ensure_model_available() -> tuple[Any, list[str]]:
         st.error("Модель не найдена. Сначала запустите обучение.")
         st.code("python train_model.py")
         st.stop()
-        raise RuntimeError("Stopped by Streamlit")
     try:
         return load_artifacts()
     except Exception as exc:
         st.error(f"Ошибка загрузки артефактов модели: {exc}")
         st.stop()
-        raise RuntimeError("Stopped by Streamlit")
 
 
 @st.cache_data(show_spinner=False)
@@ -513,6 +602,15 @@ def _translate_risk_level(level: str) -> str:
     return mapping.get(level.lower(), level)
 
 
+def _risk_emoji(level: str) -> str:
+    level_norm = level.lower()
+    if level_norm in {"low", "низкий"}:
+        return "✅"
+    if level_norm in {"medium", "средний"}:
+        return "⚠️"
+    return "🚨"
+
+
 def _sample_population_case(dataset: pd.DataFrame) -> dict[str, float]:
     row = dataset.sample(n=1).iloc[0]
     return {feature: float(row[feature]) for feature in FEATURE_COLUMNS}
@@ -544,7 +642,7 @@ def _score_live_batch(df: pd.DataFrame, model: Any) -> dict[str, Any]:
 
 
 def _render_input_guide() -> None:
-    with st.expander("Как вводить данные", expanded=False):
+    with st.expander("📖 Как вводить данные", expanded=False):
         st.markdown(
             """
             1. Выберите **Операционные факты (рекомендуется)**, если есть факты из мониторинга.
@@ -563,7 +661,7 @@ def _render_input_guide() -> None:
 
 
 def _render_operational_input_main() -> tuple[dict[str, float], dict[str, float]]:
-    st.markdown("#### Операционные факты")
+    st.markdown("#### 📊 Операционные факты")
     cols = st.columns(3)
     raw: dict[str, float] = {}
     int_fields = {
@@ -594,8 +692,8 @@ def _render_operational_input_main() -> tuple[dict[str, float], dict[str, float]
             elif key in money_fields:
                 val = st.number_input(
                     label,
-                    min_value=low,
-                    max_value=high,
+                    min_value=float(low),
+                    max_value=float(high),
                     value=float(current),
                     step=1000.0,
                     format="%.2f",
@@ -604,8 +702,8 @@ def _render_operational_input_main() -> tuple[dict[str, float], dict[str, float]
             else:
                 val = st.number_input(
                     label,
-                    min_value=low,
-                    max_value=high,
+                    min_value=float(low),
+                    max_value=float(high),
                     value=float(current),
                     step=0.0001,
                     format="%.4f",
@@ -619,7 +717,7 @@ def _render_operational_input_main() -> tuple[dict[str, float], dict[str, float]
 
 
 def _render_feature_input_main() -> dict[str, float]:
-    st.markdown("#### Признаки модели (расширенный режим)")
+    st.markdown("#### 🔬 Признаки модели (расширенный режим)")
     mode = st.radio(
         "Режим ввода",
         ["Точный ввод", "Быстрые слайдеры"],
@@ -661,8 +759,8 @@ def _render_feature_input_main() -> dict[str, float]:
                 if mode == "Точный ввод":
                     val = st.number_input(
                         label,
-                        min_value=low,
-                        max_value=high,
+                        min_value=float(low),
+                        max_value=float(high),
                         value=float(current),
                         step=float(precise_step),
                         format=precise_format,
@@ -671,8 +769,8 @@ def _render_feature_input_main() -> dict[str, float]:
                 else:
                     val = st.slider(
                         label,
-                        min_value=low,
-                        max_value=high,
+                        min_value=float(low),
+                        max_value=float(high),
                         value=float(current),
                         step=float(slider_step),
                         key=f"adv_{feature}",
@@ -703,19 +801,21 @@ def _plot_case_signal_breakdown(
     colors = []
     for idx, _ in enumerate(names):
         if idx == 0:
-            colors.append("#DC2626")
+            colors.append("#ef4444")
         elif idx == 1:
-            colors.append("#EA580C")
+            colors.append("#f97316")
         elif idx == 2:
-            colors.append("#F59E0B")
+            colors.append("#eab308")
         else:
-            colors.append(PRIMARY_COLOR)
+            colors.append("#10a37f")
 
     fig, ax = plt.subplots(figsize=(8.8, 4.8))
-    ax.barh(names, values, color=colors)
+    ax.barh(names, values, color=colors, height=0.6, edgecolor="none")
     ax.invert_yaxis()
-    ax.set_title("Разбор сигналов кейса (динамика)")
+    ax.set_title("Разбор сигналов кейса (динамика)", fontsize=13, pad=12)
     ax.set_xlabel("Взвешенное отклонение от легитимного baseline")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
 
     for idx in range(min(3, len(values))):
         ax.text(
@@ -737,10 +837,12 @@ def _plot_global_feature_importance(feature_names: list[str], importances: np.nd
     names = [x[0] for x in ranked]
     values = [float(x[1]) for x in ranked]
     fig, ax = plt.subplots(figsize=(8.4, 4.4))
-    ax.barh(names, values, color="#2563eb")
+    ax.barh(names, values, color="#10a37f", height=0.6, edgecolor="none")
     ax.invert_yaxis()
-    ax.set_title("Глобальная важность признаков (по модели)")
+    ax.set_title("Глобальная важность признаков (по модели)", fontsize=13, pad=12)
     ax.set_xlabel("важность")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
     _render_figure_inline(fig)
 
 
@@ -753,12 +855,12 @@ def _plot_feature_gallery(scored: pd.DataFrame, marker_features: dict[str, float
         pyramid = scored[scored["label"] == 1][feature].astype(float)
         ax.hist(legit, bins=24, alpha=0.55, color=LEGIT_COLOR, density=True, label="легит")
         ax.hist(pyramid, bins=24, alpha=0.48, color=PYRAMID_COLOR, density=True, label="пирамида")
-        if isinstance(marker_features, dict):
-            val = marker_features.get(str(feature))
-            if val is not None:
-                ax.axvline(float(val), color=ALERT_COLOR, linestyle="--", linewidth=2.0)
-        ax.set_title(str(feature), fontsize=10)
+        if marker_features is not None and feature in marker_features:
+            ax.axvline(float(marker_features[feature]), color="#f97316", linestyle="--", linewidth=2.0)
+        ax.set_title(feature, fontsize=10)
         ax.tick_params(labelsize=8)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
     handles, labels = axes[0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="upper center", ncol=2, frameon=False)
     fig.suptitle("Галерея признаков: отдельный график по каждой переменной", fontsize=14, fontweight="bold")
@@ -771,15 +873,15 @@ def _plot_live_confusion_and_scores(scored: pd.DataFrame, cm: list[list[int]]) -
     with c1:
         fig, ax = plt.subplots(figsize=(5.2, 4.6))
         matrix = np.array(cm, dtype=float)
-        im = ax.imshow(matrix, cmap="Blues")
-        ax.set_title("Матрица ошибок (live batch)")
+        im = ax.imshow(matrix, cmap="Greens")
+        ax.set_title("Матрица ошибок (live batch)", fontsize=13, pad=12)
         ax.set_xlabel("Предсказано")
         ax.set_ylabel("Факт")
         ax.set_xticks([0, 1], labels=["легит", "пирамида"])
         ax.set_yticks([0, 1], labels=["легит", "пирамида"])
         for i in range(2):
             for j in range(2):
-                ax.text(j, i, int(matrix[i, j]), ha="center", va="center", color="#0f172a")
+                ax.text(j, i, int(matrix[i, j]), ha="center", va="center", color="#1a1a1a", fontweight="bold")
         fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
         _render_figure_inline(fig)
     with c2:
@@ -788,32 +890,37 @@ def _plot_live_confusion_and_scores(scored: pd.DataFrame, cm: list[list[int]]) -
         pyramid_probs = scored[scored["label"] == 1]["risk_prob"]
         ax.hist(legit_probs, bins=24, alpha=0.55, color=LEGIT_COLOR, label="легит", density=True)
         ax.hist(pyramid_probs, bins=24, alpha=0.52, color=PYRAMID_COLOR, label="пирамида", density=True)
-        ax.axvline(RISK_THRESHOLDS["medium"], color=ALERT_COLOR, linestyle="--", linewidth=1.8)
-        ax.axvline(RISK_THRESHOLDS["high"], color=ALERT_COLOR, linestyle="-.", linewidth=1.8)
-        ax.set_title("Распределение вероятности риска (live batch)")
+        ax.axvline(RISK_THRESHOLDS["medium"], color="#f97316", linestyle="--", linewidth=1.8)
+        ax.axvline(RISK_THRESHOLDS["high"], color="#ef4444", linestyle="-.", linewidth=1.8)
+        ax.set_title("Распределение вероятности риска (live batch)", fontsize=13, pad=12)
         ax.set_xlabel("P(пирамида)")
         ax.legend(frameon=False)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
         _render_figure_inline(fig)
 
 
 def _plot_stage_summary(scored: pd.DataFrame) -> None:
     counts = scored["risk_level"].value_counts().reindex(["Низкий", "Средний", "Высокий"], fill_value=0)
     fig, ax = plt.subplots(figsize=(8.2, 3.7))
-    ax.bar(counts.index, counts.values, color=[SECONDARY_COLOR, "#D97706", ALERT_COLOR], width=0.58)
-    ax.set_title("Уровни риска в live batch")
+    bar_colors = ["#10a37f", "#eab308", "#ef4444"]
+    ax.bar(counts.index, counts.values, color=bar_colors, width=0.58, edgecolor="none")
+    ax.set_title("Уровни риска в live batch", fontsize=13, pad=12)
     ax.set_ylabel("Количество")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
     _render_figure_inline(fig)
 
 
 def _render_system_guide() -> None:
-    st.subheader("Подробный гид по панели APRIS")
+    st.subheader("📚 Подробный гид по панели APRIS")
     st.markdown(
         """
         Этот раздел объясняет, что показывает каждый график и зачем он нужен в аналитической работе.
         """
     )
 
-    with st.expander("Цель системы", expanded=True):
+    with st.expander("🎯 Цель системы", expanded=True):
         st.markdown(
             """
             - APRIS оценивает вероятность того, что финансовая структура имеет пирамидальные признаки.
@@ -822,7 +929,7 @@ def _render_system_guide() -> None:
             """
         )
 
-    with st.expander("Вкладка: Оценка одного кейса", expanded=True):
+    with st.expander("📋 Вкладка: Оценка одного кейса", expanded=True):
         st.markdown(
             """
             1. **Вероятность риска и уровень риска**: итоговый скор конкретного объекта.
@@ -839,7 +946,7 @@ def _render_system_guide() -> None:
             """
         )
 
-    with st.expander("Вкладка: Live-демонстрация", expanded=True):
+    with st.expander("📡 Вкладка: Live-демонстрация", expanded=True):
         st.markdown(
             """
             Live-раздел нужен для демонстрации, что система работает не на заранее заготовленных картинках.
@@ -855,7 +962,7 @@ def _render_system_guide() -> None:
             """
         )
 
-    with st.expander("Как интерпретировать результат", expanded=False):
+    with st.expander("💡 Как интерпретировать результат", expanded=False):
         st.markdown(
             """
             - **Низкий риск (< 0.4)**: сигналов мало, кейс низкого приоритета.
@@ -863,6 +970,143 @@ def _render_system_guide() -> None:
             - **Высокий риск (>= 0.7)**: выраженный набор признаков пирамидальной схемы, кейс в приоритет.
             """
         )
+
+
+def _render_crypto_ponzi_tab() -> None:
+    """Render the Company-Level Crypto-Ponzi Detection tab."""
+    st.markdown(
+        """
+        <div style='text-align:center; margin-bottom: 24px;'>
+            <div class='apris-badge'>Company-Level Analysis</div>
+            <h2 style='margin-top:8px; font-weight:700;'>Crypto-Ponzi Detection Engine</h2>
+            <p style='color: var(--apris-text-secondary); font-size:0.95rem;'>
+            Анализ поведения компании за период — агрегация транзакций, метрики, риск-скор
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # ── Preset buttons ─────────────────────────────────────────────
+    st.markdown("#### Выберите компанию для анализа")
+    preset_emojis = {"SAFE": "🏢", "MODERATE": "🏢", "DANGEROUS": "🏢", "PYRAMID": "🏢"}
+
+    cols = st.columns(4)
+    for i, preset_name in enumerate(PRESET_ORDER):
+        company = PRESET_CONFIGS[preset_name]["company_name"]
+        with cols[i]:
+            if st.button(
+                f"{preset_emojis[preset_name]} {company}",
+                key=f"cp_preset_{preset_name}",
+                use_container_width=True,
+            ):
+                st.session_state["cp_active_preset"] = preset_name
+
+    active_preset = st.session_state.get("cp_active_preset")
+    if active_preset is None:
+        st.markdown(
+            """
+            <div style='text-align:center; padding: 60px 20px; color: var(--apris-text-secondary);'>
+                <p style='font-size:2.5rem; margin-bottom: 8px;'>🏢</p>
+                <p style='font-size:1.1rem;'>Выберите пресет компании для начала анализа</p>
+                <p style='font-size:0.85rem;'>Система сгенерирует синтетические транзакции за 90 дней</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        return
+
+    # ── Generate data ──────────────────────────────────────────────
+    with st.spinner("Генерация транзакций и расчёт метрик…"):
+        case = generate_company_transactions(active_preset, seed=42)
+        transactions = case["transactions"]
+        metrics = aggregate_transactions(transactions)
+        score_result = compute_crypto_ponzi_score(metrics)
+        explanation = generate_explanation(metrics, score_result, company_name=case["company_name"])
+
+    # ── Company info card ──────────────────────────────────────────
+    st.markdown(
+        f"""
+        <div style='background: var(--apris-surface); border-radius: var(--apris-radius);
+                    padding: 20px 24px; border: 1px solid var(--apris-border); margin-bottom: 20px;'>
+            <div style='display:flex; gap: 40px; flex-wrap: wrap;'>
+                <div><span style='color: var(--apris-text-secondary); font-size:0.8rem;'>КОМПАНИЯ</span><br>
+                     <strong>{case['company_name']}</strong></div>
+                <div><span style='color: var(--apris-text-secondary); font-size:0.8rem;'>ID</span><br>
+                     <code>{case['company_id']}</code></div>
+                <div><span style='color: var(--apris-text-secondary); font-size:0.8rem;'>ВИД ДЕЯТЕЛЬНОСТИ</span><br>
+                     {case['declared_business_type']}</div>
+                <div><span style='color: var(--apris-text-secondary); font-size:0.8rem;'>ПЕРИОД</span><br>
+                     {case['reporting_period']}</div>
+                <div><span style='color: var(--apris-text-secondary); font-size:0.8rem;'>ТРАНЗАКЦИЙ</span><br>
+                     <strong>{len(transactions)}</strong></div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # ── Risk banner ────────────────────────────────────────────────
+    prob = score_result["probability"]
+    emoji = score_result["risk_emoji"]
+    level_ru = score_result["risk_level_ru"]
+    css_class = score_result["risk_css"]
+
+    st.markdown(
+        f"""
+        <div class='risk-banner {css_class}'>
+            {emoji} Вероятность крипто-пирамиды: &nbsp;<strong>{prob:.3f}</strong>
+            &nbsp;│&nbsp; Уровень риска: &nbsp;<strong>{level_ru}</strong>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # ── Key metrics as st.metric columns ───────────────────────────
+    m1, m2, m3, m4, m5 = st.columns(5)
+    m1.metric("Крипто-экспозиция", f"{metrics['crypto_exposure_ratio']:.1%}")
+    m2.metric("Зависимость выплат", f"{metrics['dependency_ratio']:.2f}")
+    m3.metric("Физ. лица (приток)", f"{metrics['physical_inflow_ratio']:.1%}")
+    m4.metric("Ср. удержание", f"{metrics['avg_holding_time']:.0f} дн.")
+    m5.metric("Концентрация top-5", f"{metrics['concentration_index']:.2f}")
+
+    st.markdown("---")
+
+    # ── Visualizations ─────────────────────────────────────────────
+    # 1 & 2: Timeline + Pie side by side
+    vc1, vc2 = st.columns([1.6, 1])
+    with vc1:
+        fig_timeline = plot_inflow_outflow_timeline(transactions)
+        _render_figure_inline(fig_timeline)
+        plt.close(fig_timeline)
+    with vc2:
+        fig_pie = plot_inflow_structure_pie(metrics)
+        _render_figure_inline(fig_pie)
+        plt.close(fig_pie)
+
+    # 3 & 4: Network + Factor contributions
+    vc3, vc4 = st.columns([1.2, 1])
+    with vc3:
+        fig_network = plot_counterparty_network(transactions, company_name=case["company_name"])
+        _render_figure_inline(fig_network)
+        plt.close(fig_network)
+    with vc4:
+        fig_factors = plot_factor_contributions(score_result)
+        _render_figure_inline(fig_factors)
+        plt.close(fig_factors)
+
+    # 5: Metrics table
+    st.markdown("#### 📊 Таблица ключевых метрик")
+    metrics_df = build_metrics_table(metrics)
+    st.dataframe(metrics_df, use_container_width=True, hide_index=True)
+
+    # ── Explanation ────────────────────────────────────────────────
+    st.markdown("#### 📝 Объяснение оценки")
+    st.markdown(explanation)
+
+    # ── Raw transactions preview ───────────────────────────────────
+    with st.expander("📋 Первые 30 транзакций (синтетические)", expanded=False):
+        st.dataframe(transactions.head(30), use_container_width=True, hide_index=True)
 
 
 def main() -> None:
@@ -885,53 +1129,53 @@ def main() -> None:
     except Exception as exc:
         population_error = str(exc)
 
+    # ── Hero section ──
     st.markdown(
-        "<div class='apris-card'><h1 style='margin:0;'>APRIS — AI Pyramid Risk Intelligence System</h1>"
-        "<p style='margin:8px 0 0 0;'>Панель поддержки решений для раннего скрининга пирамидных рисков.</p>"
+        "<div class='apris-hero'>"
+        "<div class='apris-badge'>AI-Powered Risk Detection</div>"
+        "<h1>APRIS</h1>"
+        "<p class='apris-subtitle'>AI Pyramid Risk Intelligence System — панель поддержки решений для раннего скрининга пирамидных рисков</p>"
         "</div>",
         unsafe_allow_html=True,
     )
-    intro_left, intro_right = st.columns([1.2, 1])
-    with intro_left:
-        st.markdown(
-            """
-            **Краткая инструкция**
-            1. Выберите источник ввода: операционные факты (рекомендуется) или признаки модели.
-            2. Используйте пресет или введите значения кейса вручную.
-            3. Нажмите кнопку «Оценить кейс» и проверьте:
-            - Вероятность риска и уровень риска
-            - Разбор сигналов кейса (ключевые драйверы)
-            - Синтетический транзакционный граф и hub-метрики
-            - Карта рисков популяции (кейс на фоне синтетической популяции)
-            """
-        )
-        st.info("Все данные в интерфейсе синтетические и генерируются локально. Реальные персональные записи не используются.")
-    with intro_right:
-        st.markdown("#### Формулы и пороги")
-        st.markdown(
-            """
-            `growth_rate = (Новые_клиенты_текущего - Новые_клиенты_предыдущего) / max(Новые_клиенты_предыдущего, 1)`  
-            `referral_ratio = Реферальные_клиенты_текущего / max(Новые_клиенты_текущего, 1)`  
-            `payout_dependency = Общий_объем_выплат / max(Общий_входящий_поток, 1)`  
-            `Risk = P(пирамида | признаки)`
-            """
-        )
-        st.caption("Пороги интерпретации: < 0.4 — низкий риск, 0.4-0.7 — средний, >= 0.7 — высокий.")
 
-    tab_single, tab_live, tab_guide = st.tabs(
-        ["Оценка одного кейса", "Live-демонстрация", "Как читать систему"]
+    # ── Quick info section ──
+    with st.expander("📋 Краткая инструкция", expanded=False):
+        c1, c2 = st.columns([1.2, 1])
+        with c1:
+            st.markdown(
+                """
+                1. Выберите источник ввода: операционные факты (рекомендуется) или признаки модели.
+                2. Используйте пресет или введите значения кейса вручную.
+                3. Нажмите кнопку «Оценить кейс» и проверьте результаты.
+                """
+            )
+        with c2:
+            st.markdown("**Формулы и пороги**")
+            st.markdown(
+                """
+                `growth_rate = (Новые_тек - Новые_пред) / max(Новые_пред, 1)`
+                `referral_ratio = Реферальные_тек / max(Новые_тек, 1)`
+                `payout_dependency = Выплаты / max(Вход_поток, 1)`
+                """
+            )
+            st.caption("Пороги: < 0.4 — низкий, 0.4-0.7 — средний, >= 0.7 — высокий.")
+    st.info("🔒 Все данные синтетические и обрабатываются локально. Реальные персональные записи не используются.")
+
+    tab_single, tab_live, tab_crypto, tab_guide = st.tabs(
+        ["🔍 Оценка кейса", "📡 Live-демонстрация", "🏢 Crypto-Ponzi (Компания)", "📚 Гид"]
     )
 
     with tab_single:
-        st.subheader("Быстрые пресеты")
+        st.markdown("##### Быстрые пресеты")
         p1, p2, p3, p4 = st.columns(4)
-        if p1.button("Пресет: Легит", use_container_width=True):
+        if p1.button("✅ Легит", use_container_width=True):
             _set_preset("Legit")
-        if p2.button("Пресет: Подозрительно", use_container_width=True):
+        if p2.button("⚠️ Подозрительно", use_container_width=True):
             _set_preset("Suspicious")
-        if p3.button("Пресет: Пирамида", use_container_width=True):
+        if p3.button("🚨 Пирамида", use_container_width=True):
             _set_preset("Pyramid")
-        if p4.button("Случайный кейс", use_container_width=True):
+        if p4.button("🎲 Случайный кейс", use_container_width=True):
             if population_df.empty:
                 st.warning("Синтетический датасет недоступен для генерации случайного кейса.")
             else:
@@ -949,6 +1193,7 @@ def main() -> None:
                 st.session_state["single_raw_operational"] = None
                 st.success("Случайный синтетический кейс сгенерирован и оценен.")
 
+        st.markdown("---")
         _render_input_guide()
         input_source = st.radio(
             "Источник ввода",
@@ -962,7 +1207,8 @@ def main() -> None:
         else:
             raw_operational, features = None, _render_feature_input_main()
 
-        if st.button("Оценить кейс", type="primary", use_container_width=True):
+        st.markdown("")  # spacer
+        if st.button("🔍 Оценить кейс", type="primary", use_container_width=True):
             try:
                 st.session_state["single_result"] = predict_risk(
                     features, model=model, feature_names=feature_names
@@ -983,10 +1229,11 @@ def main() -> None:
 
             level = _translate_risk_level(str(result["label_text"]))
             risk_prob = float(result["prob"])
+            emoji = _risk_emoji(level)
             st.markdown(
                 (
                     f"<div class='{_risk_css_class(level)}'>"
-                    f"Вероятность риска: {risk_prob:.3f} | Уровень риска: {level}"
+                    f"{emoji} Вероятность риска: <strong>{risk_prob:.3f}</strong> &nbsp;|&nbsp; Уровень риска: <strong>{level}</strong>"
                     "</div>"
                 ),
                 unsafe_allow_html=True,
@@ -995,11 +1242,11 @@ def main() -> None:
             with threshold_col:
                 st.metric("Пороги", f"{RISK_THRESHOLDS['medium']:.1f} / {RISK_THRESHOLDS['high']:.1f}")
 
-            st.write("Топ признаков (глобальная важность):")
+            st.markdown("**Топ признаков (глобальная важность):**")
             st.table(pd.DataFrame(top_features).rename(columns={"feature": "Признак", "importance": "Важность"}))
 
             if raw_operational_view is not None:
-                with st.expander("Рассчитанные признаки модели из операционных фактов", expanded=False):
+                with st.expander("📐 Рассчитанные признаки модели из операционных фактов", expanded=False):
                     st.table(
                         pd.DataFrame(
                             [{"Признак": k, "Значение": float(v)} for k, v in object_features.items()]
@@ -1013,7 +1260,7 @@ def main() -> None:
                     feature_names,
                     np.asarray(model.feature_importances_, dtype=float),
                 )
-                with st.expander("Глобальная важность по модели (справочно)", expanded=False):
+                with st.expander("📊 Глобальная важность по модели (справочно)", expanded=False):
                     _plot_global_feature_importance(
                         feature_names,
                         np.asarray(model.feature_importances_, dtype=float),
@@ -1028,7 +1275,7 @@ def main() -> None:
                 g2.metric("Betweenness hub", f"{graph_metrics['hub_betweenness']:.3f}")
                 st.caption("Высокая концентрация на hub может указывать на централизованную структуру выплат.")
 
-            st.markdown("#### Карта рисков популяции")
+            st.markdown("#### 🗺️ Карта рисков популяции")
             if population_error is not None or pop_scaler is None or pop_pca is None:
                 st.warning(f"Карта популяции недоступна: {population_error}")
             else:
@@ -1045,7 +1292,7 @@ def main() -> None:
             st.info("Заполните значения и нажмите «Оценить кейс».")
 
     with tab_live:
-        st.subheader("Сценарий live-генерации синтетических данных")
+        st.subheader("📡 Live-генерация синтетических данных")
         controls1, controls2, controls3 = st.columns([1, 1, 2])
         with controls1:
             batch_size = st.number_input(
@@ -1066,7 +1313,7 @@ def main() -> None:
                 unsafe_allow_html=True,
             )
 
-        if st.button("Сгенерировать новый синтетический батч", type="primary"):
+        if st.button("🚀 Сгенерировать новый синтетический батч", type="primary"):
             selected_seed = None if use_random_seed else int(manual_seed)
             live_df, used_seed = generate_live_batch(total_n=int(batch_size), seed=selected_seed)
             payload = _score_live_batch(live_df, model=model)
@@ -1100,6 +1347,9 @@ def main() -> None:
 
         preview_cols = FEATURE_COLUMNS + ["label", "pred_label", "risk_prob", "risk_level", "is_borderline"]
         st.dataframe(live_scored[preview_cols].head(25), use_container_width=True)
+
+    with tab_crypto:
+        _render_crypto_ponzi_tab()
 
     with tab_guide:
         _render_system_guide()
