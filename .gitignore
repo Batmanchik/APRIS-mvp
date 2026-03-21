@@ -1,4 +1,6 @@
 .venv/
+.venv_*/
+.venv_mac_backup_*/
 __pycache__/
 *.pyc
 .DS_Store
@@ -8,3 +10,13 @@ backups/
 logs/
 .run/
 restore/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.import_linter_cache/
+.coverage
+coverage.xml
+htmlcov/
+build/
+dist/

@@ -1,56 +1,105 @@
-﻿# AI Pyramid Risk Detection MVP
+# Cheops AI (Multi-Channel Fraud Intelligence System)
 
-## Overview
-APRIS is a local AI prototype for early detection of financial pyramid schemes.
-The system uses a synthetic population of organizations, computes risk scores with a trained RandomForest model, and provides analyst-facing visual diagnostics in Streamlit.
-It includes single-case scoring, dynamic signal breakdown, synthetic transaction graph analysis, and a PCA-based population risk map.
-All inference is executed locally without external AI APIs.
-The MVP is designed for hackathon demonstration and fast extension to real compliance workflows.
+Cheops AI is a local MVP for detection of multi-channel financial fraud patterns (legal + crypto).
+It combines ML risk scoring, ETL for transaction logs, a FastAPI backend, and a Streamlit multipage frontend.
 
-## Problem
-Financial pyramids often imitate legitimate growth in early stages, which makes manual detection slow and inconsistent. Monitoring teams need a repeatable way to prioritize suspicious entities before collapse events. APRIS addresses this by combining behavioral and structural indicators into an interpretable risk score with visual evidence for analysts.
+## Current Architecture
+- `src/apris/` - core backend and ML modules.
+- `src/apris/api/main.py` - FastAPI REST API (`/api/v1/*`, `/api/v2/*`).
+- `src/apris/cheops/` - v2 clean architecture layers (`domain`, `application`, `infrastructure`, `interfaces`).
+- `src/apris/risk_engine.py` - model inference, feature validation, explainability.
+- `src/apris/etl.py` - CSV/JSON ingestion and operational-to-feature transformation.
+- `src/apris/train_model.py` - model training, metrics, artifact export, MLflow logging.
+- `src/apris/frontend/api_client.py` - HTTP client used by Streamlit pages.
+- `pages/` - Streamlit multipage UI (dashboard, scanner, manual check).
+- `tests/` - pytest-based test suite (`unit`, `api`, `smoke`).
 
-## Architecture
-- `data_generator.py` - synthetic dataset generation with borderline cases and correlated features.
-- `train_model.py` - model training and artifact export.
-- `risk_engine.py` - artifact loading, input validation, risk scoring, and feature explanation.
-- `graph_module.py` - synthetic transaction graph generation and hub metrics.
-- `population_map.py` - PCA projection of synthetic population with current-case overlay.
-- `app.py` (Streamlit UI) - analyst dashboard and demo workflow.
+## Runtime vs Source Directories
+- Source code: `src/`, `pages/`, `tests/`, `scripts/`.
+- Runtime/generated data: `artifacts/`, `mlruns/`, `.run/`.
+- Virtual environments/backups: `.venv/`, `.venv_*`.
 
-## Model
-- Algorithm: `RandomForestClassifier`
-- Test recall (pyramid, label=1): `0.96`
-- Test ROC-AUC: `0.993`
-- Data design: synthetic population with `15%` borderline cases and overlapping class distributions.
+This repository keeps runtime directories for local experimentation. They are not required for code review and can be regenerated.
 
-## How to Run
+## Dependency Source of Truth
+- Canonical dependency spec: `pyproject.toml` (`[project.dependencies]` and `[project.optional-dependencies].dev`).
+- `requirements.txt` is kept in sync for convenience and mirrors runtime dependencies from `pyproject.toml`.
+
+## Run (PowerShell-only)
+Use the unified launcher:
+
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-streamlit run app.py
+.\scripts\app.ps1 start
+.\scripts\app.ps1 status
+.\scripts\app.ps1 open
+.\scripts\app.ps1 stop
 ```
 
-## App Mode (Windows)
-- Start from terminal command:
+What `start` does:
+- bootstraps `.venv` if missing,
+- installs project and dev dependencies from `pyproject.toml` via `pip install -e ".[dev]"`,
+- starts FastAPI on `127.0.0.1:8000`,
+- starts Streamlit on `127.0.0.1:8501`,
+- writes PID files to `.run/`,
+- writes logs to `.run/api.out.log`, `.run/api.err.log`, `.run/streamlit.out.log`, `.run/streamlit.err.log`.
+
+Frontend API client environment:
+- `CHEOPS_API_BASE_URL` (default: `http://127.0.0.1:8000`)
+- `CHEOPS_API_TIMEOUT` in seconds (optional)
+
+## Train Model
+Train on synthetic data:
+
 ```powershell
-.\start_app.bat
-```
-- Open separate app-window on demand (without restarting server):
-```powershell
-.\open_app.bat
-```
-- Stop app:
-```powershell
-.\stop_app.bat
+.\.venv\Scripts\python.exe -m apris.train_model
 ```
 
-## Limitations
-- Synthetic data only (no real banking data in this MVP).
-- No direct integration with banking core systems or regulator data feeds.
+Train on external data via ETL (`csv` or `json`):
 
-## Roadmap
-- Graph Neural Networks (GNN) for transaction-topology risk learning.
-- NLP pipeline for complaint/news/investigation text signals.
-- CBDC and digital-asset transaction compatibility layer.
+```powershell
+.\.venv\Scripts\python.exe -m apris.train_model --data your_real_data.csv
+```
+
+## Test and Quality Workflow
+Install dev tools:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+```
+
+Run tests:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\python.exe -m pytest -m smoke
+```
+
+Run quality checks:
+
+```powershell
+.\.venv\Scripts\python.exe -m ruff check src tests pages
+.\.venv\Scripts\python.exe -m ruff format --check src tests pages
+.\.venv\Scripts\python.exe -m mypy
+```
+
+Enable pre-commit hooks:
+
+```powershell
+.\.venv\Scripts\python.exe -m pre_commit install
+```
+
+## API Surface
+Versioned API contract:
+- `GET /api/v1/health`
+- `POST /api/v1/predict`
+- `POST /api/v1/predict/ops`
+- `POST /api/v1/explain`
+- `GET /api/v1/meta/features`
+- `GET /api/v2/meta/typologies`
+- `GET /api/v2/health/model`
+- `POST /api/v2/score`
+- `POST /api/v2/score/batch`
+- `POST /api/v2/explain`
+
+## Release Readiness
+- Regression and operational release checklist: `docs/RELEASE_CHECKLIST.md`.

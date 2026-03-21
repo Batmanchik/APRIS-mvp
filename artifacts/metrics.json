@@ -1,16 +1,16 @@
 {
-  "accuracy": 0.96,
-  "roc_auc": 0.99299375,
-  "recall_pyramid": 0.96,
-  "precision_pyramid": 0.96,
+  "accuracy": 0.9625,
+  "roc_auc": 0.99398125,
+  "recall_pyramid": 0.955,
+  "precision_pyramid": 0.9695431472081218,
   "confusion_matrix": [
     [
-      384,
-      16
+      388,
+      12
     ],
     [
-      16,
-      384
+      18,
+      382
     ]
   ],
   "threshold_policy": "fixed_0.4_0.7",
@@ -29,13 +29,15 @@
     3200
   ],
   "model": {
-    "name": "RandomForestClassifier",
+    "name": "LightGBMClassifier",
     "params": {
       "n_estimators": 300,
-      "max_depth": null,
-      "min_samples_leaf": 5,
+      "learning_rate": 0.05,
+      "max_depth": 6,
+      "min_child_samples": 5,
       "random_state": 42,
-      "n_jobs": -1
+      "n_jobs": -1,
+      "verbose": -1
     }
   },
   "roc_curve_path": "artifacts\\roc_curve.png"

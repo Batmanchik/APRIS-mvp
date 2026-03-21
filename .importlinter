@@ -1,0 +1,11 @@
+[importlinter]
+root_package = apris
+
+[importlinter:contract:cheops_layers]
+name = Cheops Clean Architecture Layers
+type = layers
+layers =
+    apris.cheops.interfaces
+    apris.cheops.infrastructure
+    apris.cheops.application
+    apris.cheops.domain

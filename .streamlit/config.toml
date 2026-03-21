@@ -6,4 +6,4 @@ secondaryBackgroundColor = "#f7f7f8"
 textColor = "#1a1a1a"
 
 [server]
-runOnSave = true
+runOnSave = false

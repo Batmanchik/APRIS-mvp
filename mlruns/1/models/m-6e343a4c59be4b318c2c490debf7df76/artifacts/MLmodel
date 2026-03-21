@@ -1,0 +1,25 @@
+artifact_path: "file:///C:/Users/alibe/Desktop/\u0422\u0443\u0440\u043A\u0435\u0441\
+  \u0442\u0430\u043D\u0441\u043A\u0438\u0439\u0445\u0430\u043A\u0430\u0442\u043E\u043D\
+  \u043B\u043E\u043A\u0430\u043B\u044C\u043D\u044B\u04391.1/mlruns/1/models/m-6e343a4c59be4b318c2c490debf7df76/artifacts"
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.11.9
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.6.1
+    skops_trusted_types: null
+mlflow_version: 3.10.1
+model_id: m-6e343a4c59be4b318c2c490debf7df76
+model_size_bytes: 1027496
+model_uuid: m-6e343a4c59be4b318c2c490debf7df76
+prompts: null
+run_id: df465b237fed426a8bbe54eb28dff458
+utc_time_created: '2026-03-19 16:00:25.109012'

@@ -8,7 +8,7 @@ from typing import Any
 import joblib
 import pandas as pd
 
-from data_generator import FEATURE_BOUNDS, FEATURE_COLUMNS, RISK_THRESHOLDS
+from apris.data_generator import FEATURE_BOUNDS, FEATURE_COLUMNS, RISK_THRESHOLDS
 
 
 ARTIFACTS_DIR = Path("artifacts")

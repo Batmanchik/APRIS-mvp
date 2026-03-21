@@ -1,0 +1,41 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks:
+      - id: mypy
+        args: [--config-file=pyproject.toml]
+        additional_dependencies:
+          - types-requests
+
+  - repo: local
+    hooks:
+      - id: lint-imports
+        name: import-linter
+        entry: lint-imports
+        language: system
+        pass_filenames: false
+
+      - id: bandit
+        name: bandit security scan
+        entry: python -m bandit -q -r src/apris -x src/apris/crypto_ponzi -s B101
+        language: system
+        pass_filenames: false
+
+      - id: radon
+        name: radon complexity gate
+        entry: python -m radon cc src/apris/cheops -s -n B
+        language: system
+        pass_filenames: false
