@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import inspect
 import json
 from pathlib import Path
 from typing import Any
@@ -78,6 +79,31 @@ FEATURE_NAMES_PATH = ARTIFACTS_DIR / "feature_names.json"
 METRICS_PATH = ARTIFACTS_DIR / "metrics.json"
 IMPORTANCES_JSON_PATH = ARTIFACTS_DIR / "feature_importances.json"
 ROC_CURVE_PATH = ARTIFACTS_DIR / "roc_curve.png"
+
+
+# LightGBM types the newer MLflow serializer refuses to save unless they are
+# declared trusted. The parameter that declares them does not exist in
+# MLflow 2.x, and pyproject allows ``mlflow>=2.0``, so the signature is
+# inspected rather than assumed.
+#
+# This is the second failure of the same class in one day: CI installs
+# dependencies fresh while a developer machine keeps whatever it had, so the
+# suite can be green locally and red in CI without a line of code differing.
+# The structural fix is a lockfile; until there is one, code that touches a
+# fast-moving library should tolerate both versions.
+_TRUSTED_MODEL_TYPES = [
+    "collections.OrderedDict",
+    "lightgbm.basic.Booster",
+    "lightgbm.sklearn.LGBMClassifier",
+]
+
+
+def _log_sklearn_model(model: Any, artifact_path: str) -> None:
+    kwargs: dict[str, Any] = {}
+    signature = inspect.signature(mlflow.sklearn.log_model)
+    if "skops_trusted_types" in signature.parameters:
+        kwargs["skops_trusted_types"] = _TRUSTED_MODEL_TYPES
+    mlflow.sklearn.log_model(model, artifact_path, **kwargs)
 
 
 def _ensure_artifacts_dir() -> None:
@@ -372,7 +398,7 @@ def train_and_save(df: pd.DataFrame, random_state: int = SEED) -> dict[str, Any]
         mlflow.log_artifact(str(fusion_metrics_path))
         mlflow.log_artifact(str(feature_profile_path))
         mlflow.log_artifact(str(registry_path))
-        mlflow.sklearn.log_model(model, "lightgbm-model")
+        _log_sklearn_model(model, "lightgbm-model")
 
         return {
             "metrics": metrics,
