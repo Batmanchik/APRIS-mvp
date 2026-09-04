@@ -20,6 +20,11 @@ def test_train_save_and_infer_smoke(tmp_path: Path, monkeypatch: pytest.MonkeyPa
     assert "importances" in result
     assert (tmp_path / "artifacts" / "model.joblib").exists()
     assert (tmp_path / "artifacts" / "feature_names.json").exists()
+    assert (tmp_path / "artifacts" / "cheops_v2_tabular.joblib").exists()
+    assert (tmp_path / "artifacts" / "cheops_v2_sequence.joblib").exists()
+    assert (tmp_path / "artifacts" / "cheops_v2_graph.joblib").exists()
+    assert (tmp_path / "artifacts" / "cheops_v2_fusion_meta.joblib").exists()
+    assert (tmp_path / "artifacts" / "cheops_v2_model_registry.json").exists()
 
     model, feature_names = load_artifacts()
     features = {

@@ -1,4 +1,4 @@
-"""Transaction scanner page (batch ETL -> API v2 scoring)."""
+"""Сканнер транзакций (пакетный ETL и скоринг через API v2)."""
 from __future__ import annotations
 
 import hashlib
@@ -21,20 +21,20 @@ from apris.frontend import api_client
 from apris.risk_engine import operational_to_features
 
 
-st.set_page_config(page_title="Scanner | Cheops AI", page_icon="📡", layout="wide")
+st.set_page_config(page_title="Сканнер | Cheops AI", page_icon="📡", layout="wide")
 
-st.title("📡 Mass Transaction Scanner")
-st.caption("Batch scan through API v2 (/api/v2/score/batch). No local model inference in UI.")
+st.title("📡 Массовый сканер транзакций")
+st.caption("Пакетное сканирование через API v2 (/api/v2/score/batch). Локальный инференс в интерфейсе отключен.")
 
 
 def _risk_level(prob: float) -> str:
     if prob >= 0.85:
-        return "Critical"
+        return "Критический"
     if prob >= 0.70:
-        return "High"
+        return "Высокий"
     if prob >= 0.45:
-        return "Medium"
-    return "Low"
+        return "Средний"
+    return "Низкий"
 
 
 def _deterministic_case_id(prefix: str, index: int, seed: int, payload: dict[str, Any]) -> str:
@@ -98,7 +98,11 @@ def _prepare_cases_from_tx_df(tx_df: pd.DataFrame, seed: int) -> list[dict[str, 
             events.append(
                 {
                     "event_id": f"evt-{case_id}-{event_idx}",
-                    "ts": ts.astimezone(timezone.utc).isoformat() if ts.tzinfo else ts.replace(tzinfo=timezone.utc).isoformat(),
+                    "ts": (
+                        ts.astimezone(timezone.utc).isoformat()
+                        if ts.tzinfo
+                        else ts.replace(tzinfo=timezone.utc).isoformat()
+                    ),
                     "amount": float(max(getattr(row, "amount"), 1.0)),
                     "currency": "USD",
                     "sender_id": str(getattr(row, "sender_id")),
@@ -131,29 +135,29 @@ def _read_uploaded(file_obj: Any) -> pd.DataFrame:
         return pd.read_csv(file_obj)
     if name.endswith(".json"):
         return pd.read_json(file_obj)
-    raise ValueError("Unsupported format. Use CSV or JSON.")
+    raise ValueError("Неподдерживаемый формат. Используйте CSV или JSON.")
 
 
 def _build_cases(uploaded: Any, simulate: bool, batch_size: int) -> tuple[list[dict[str, Any]], int, str]:
     if simulate:
         synthetic_df, seed = generate_live_batch(total_n=batch_size, seed=42)
-        return _prepare_cases_from_feature_df(synthetic_df, seed=seed), seed, "synthetic"
+        return _prepare_cases_from_feature_df(synthetic_df, seed=seed), seed, "синтетика"
 
     if uploaded is None:
-        raise ValueError("Upload CSV/JSON or enable simulation.")
+        raise ValueError("Загрузите CSV/JSON или включите симуляцию.")
 
     df = _read_uploaded(uploaded)
     seed = 42
     cols = set(df.columns)
     if set(FEATURE_COLUMNS).issubset(cols):
-        return _prepare_cases_from_feature_df(df, seed=seed), seed, "features"
+        return _prepare_cases_from_feature_df(df, seed=seed), seed, "признаки"
 
     required_tx = {"sender_id", "receiver_id", "amount", "timestamp"}
     if required_tx.issubset(cols):
-        return _prepare_cases_from_tx_df(df, seed=seed), seed, "transactions"
+        return _prepare_cases_from_tx_df(df, seed=seed), seed, "транзакции"
 
     raise ValueError(
-        "Input file must contain either model feature columns or raw tx columns "
+        "Входной файл должен содержать либо модельные признаки, либо сырые tx-поля "
         "(sender_id, receiver_id, amount, timestamp)."
     )
 
@@ -165,37 +169,37 @@ def _render_summary(scored: pd.DataFrame, failed: int, mode: str) -> None:
     medium = int(((scored["risk_prob"] >= 0.45) & (scored["risk_prob"] < 0.70)).sum())
 
     c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("Scanned", total)
-    c2.metric("Critical", critical)
-    c3.metric("High", high)
-    c4.metric("Medium", medium)
-    c5.metric("Failures", failed)
-    st.caption(f"Source mode: {mode}")
+    c1.metric("Проверено", total)
+    c2.metric("Критические", critical)
+    c3.metric("Высокие", high)
+    c4.metric("Средние", medium)
+    c5.metric("Ошибки", failed)
+    st.caption(f"Источник: {mode}")
 
 
-uploaded_file = st.file_uploader("Upload transactions or features (CSV/JSON)", type=["csv", "json"])
-simulate_scan = st.checkbox("Use synthetic simulation", value=True)
-batch_size = st.slider("Simulation entity count", min_value=500, max_value=5000, value=1500, step=500)
+uploaded_file = st.file_uploader("Загрузите транзакции или признаки (CSV/JSON)", type=["csv", "json"])
+simulate_scan = st.checkbox("Использовать синтетическую симуляцию", value=True)
+batch_size = st.slider("Размер симуляции (кол-во сущностей)", min_value=500, max_value=5000, value=1500, step=500)
 
-if st.button("Run batch scan", type="primary", use_container_width=True):
-    progress = st.progress(0, text="Checking API availability")
+if st.button("Запустить пакетное сканирование", type="primary", use_container_width=True):
+    progress = st.progress(0, text="Проверка доступности API")
     try:
         api_client.health_check_v2_model()
     except Exception as exc:
         progress.empty()
-        st.error(f"API unavailable. Start backend first. Details: {exc}")
+        st.error(f"API недоступен. Сначала запустите бэкенд. Детали: {exc}")
         st.stop()
 
     try:
-        progress.progress(10, text="Preparing cases")
+        progress.progress(10, text="Подготовка кейсов")
         cases, seed_used, source_mode = _build_cases(uploaded_file, simulate_scan, batch_size)
         if not cases:
-            raise ValueError("No cases prepared from selected source.")
+            raise ValueError("Из выбранного источника не удалось подготовить кейсы.")
 
-        progress.progress(45, text=f"Scoring {len(cases)} cases via API v2 batch")
+        progress.progress(45, text=f"Оценка {len(cases)} кейсов через пакетный API v2")
         response = api_client.score_batch_v2(cases)
 
-        progress.progress(75, text="Building dashboard dataset")
+        progress.progress(75, text="Подготовка датасета для дашборда")
         results = response.get("results", [])
         failures = response.get("failures", [])
 
@@ -225,17 +229,17 @@ if st.button("Run batch scan", type="primary", use_container_width=True):
         st.session_state["last_scan_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         st.session_state["last_scan_seed"] = seed_used
 
-        progress.progress(100, text="Completed")
+        progress.progress(100, text="Готово")
         _render_summary(scored_df, failed=len(failures), mode=source_mode)
 
         if failures:
-            with st.expander("Batch failures", expanded=False):
+            with st.expander("Ошибки пакетной обработки", expanded=False):
                 st.dataframe(pd.DataFrame(failures), use_container_width=True)
 
-        st.success("Scan finished. Open the anomaly dashboard to inspect dossiers.")
-        if st.button("Open anomaly dashboard"):
+        st.success("Сканирование завершено. Перейдите в дашборд аномалий для анализа досье.")
+        if st.button("Открыть дашборд аномалий"):
             st.switch_page("pages/1_Дашборд_аномалий.py")
 
     except Exception as exc:
         progress.empty()
-        st.error(f"Scan failed: {exc}")
+        st.error(f"Сканирование завершилось ошибкой: {exc}")

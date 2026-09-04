@@ -116,7 +116,6 @@ def _estimate_holding_time(df: pd.DataFrame) -> float:
         return 90.0
 
     daily = daily.sort_values("date")
-    total_in = daily["daily_in"].sum()
     total_out = daily["daily_out"].sum()
 
     if total_out == 0:
@@ -127,11 +126,6 @@ def _estimate_holding_time(df: pd.DataFrame) -> float:
     holding_weighted_sum = 0.0
     total_matched = 0.0
 
-    for idx, row in daily.iterrows():
-        day_i = int(daily.index.get_loc(idx)) if not isinstance(idx, int) else idx
-        day_idx = len(inflow_queue)  # just use sequential day index
-
-    # Re-do with proper day indexing
     daily = daily.reset_index(drop=True)
     for day_idx in range(len(daily)):
         row = daily.iloc[day_idx]

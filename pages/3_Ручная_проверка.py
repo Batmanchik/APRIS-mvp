@@ -1,5 +1,5 @@
-"""
-Page 1: Оценка одного кейса (Single Case Assessment).
+﻿"""
+Страница 1: Оценка одного кейса.
 
 Этот файл содержит всю логику вкладки «Оценка кейса»,
 включая ввод признаков, вызов модели и визуализацию результатов.
@@ -9,7 +9,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-# Ensure project root is on sys.path so shared helpers can be imported.
+# Добавляем корень проекта в sys.path, чтобы импортировать общие модули.
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
@@ -45,7 +45,7 @@ from apris.risk_engine import (
     predict_risk,
 )
 
-# ── Constants ─────────────────────────────────────────────────────
+# ── Константы ─────────────────────────────────────────────────────
 PRESETS: dict[str, dict[str, float]] = {
     "Legit": {
         "growth_rate": 0.08, "referral_ratio": 0.20, "payout_dependency": 0.55,
@@ -119,7 +119,7 @@ OPERATIONAL_LABELS = {
 }
 
 
-# ── Helpers ───────────────────────────────────────────────────────
+# ── Вспомогательные функции ───────────────────────────────────────
 
 def _render_figure_inline(fig: plt.Figure, width: str = "100%") -> None:
     buffer = BytesIO()
@@ -218,7 +218,7 @@ def _sample_population_case(dataset: pd.DataFrame) -> dict[str, float]:
     return {feature: float(row[feature]) for feature in FEATURE_COLUMNS}
 
 
-# ── Input renderers ───────────────────────────────────────────────
+# ── Отрисовка ввода ───────────────────────────────────────────────
 
 def _render_input_guide() -> None:
     with st.expander("📖 Как вводить данные", expanded=False):
@@ -303,7 +303,7 @@ def _render_feature_input_main() -> dict[str, float]:
     return features
 
 
-# ── Plot helpers ──────────────────────────────────────────────────
+# ── Вспомогательные графики ───────────────────────────────────────
 
 def _plot_case_signal_breakdown(
     features: dict[str, float], feature_names: list[str], importances: np.ndarray,
@@ -330,7 +330,7 @@ def _plot_case_signal_breakdown(
     ax.barh(names, values, color=colors, height=0.6, edgecolor="none")
     ax.invert_yaxis()
     ax.set_title("Разбор сигналов кейса (динамика)", fontsize=13, pad=12)
-    ax.set_xlabel("Взвешенное отклонение от легитимного baseline")
+    ax.set_xlabel("Взвешенное отклонение от легитимного базового профиля")
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     for idx in range(min(3, len(values))):
@@ -339,7 +339,7 @@ def _plot_case_signal_breakdown(
             idx, "ТОП", va="center", fontsize=9, color="#991B1B", fontweight="bold",
         )
     _render_figure_inline(fig)
-    st.caption("Взвешенное отклонение от легитимного baseline. Выделены топ-3 сигнала.")
+    st.caption("Взвешенное отклонение от легитимного базового профиля. Выделены топ-3 сигнала.")
 
 
 def _plot_global_feature_importance(feature_names: list[str], importances: np.ndarray) -> None:
@@ -356,12 +356,12 @@ def _plot_global_feature_importance(feature_names: list[str], importances: np.nd
     _render_figure_inline(fig)
 
 
-# ── Main page logic ──────────────────────────────────────────────
+# ── Основная логика страницы ─────────────────────────────────────
 
 _ensure_defaults()
 model, feature_names = _ensure_model_available()
 
-# Load population data
+# Загружаем данные популяции
 population_error: str | None = None
 population_df = pd.DataFrame()
 projected_population = pd.DataFrame()
@@ -467,9 +467,9 @@ if "single_result" in st.session_state:
         graph_fig = plot_graph(graph, hub_node=int(graph_metrics["hub_node"]))
         _render_figure_inline(graph_fig)
         g1, g2 = st.columns(2)
-        g1.metric("Доля входящих у hub", f"{graph_metrics['hub_in_degree_share']:.3f}")
-        g2.metric("Betweenness hub", f"{graph_metrics['hub_betweenness']:.3f}")
-        st.caption("Высокая концентрация на hub может указывать на централизованную структуру выплат.")
+        g1.metric("Доля входящих у центра", f"{graph_metrics['hub_in_degree_share']:.3f}")
+        g2.metric("Посредничество центра", f"{graph_metrics['hub_betweenness']:.3f}")
+        st.caption("Высокая концентрация на центральном узле может указывать на централизованную структуру выплат.")
 
     st.markdown("#### 🗺️ Карта рисков популяции")
     if population_error is not None or pop_scaler is None or pop_pca is None:
@@ -478,6 +478,6 @@ if "single_result" in st.session_state:
         current_point = project_current_case(object_features, feature_names, pop_scaler, pop_pca)
         pop_fig = build_population_map_figure(projected_population, current_point=current_point)
         _render_figure_inline(pop_fig)
-        st.caption("PCA-проекция синтетической популяции с наложением текущего кейса.")
+        st.caption("Проекция PCA синтетической популяции с наложением текущего кейса.")
 else:
     st.info("Заполните значения и нажмите «Оценить кейс».")

@@ -90,10 +90,41 @@ class TestApiV2Endpoints:
             assert "model_version" in body
             assert "calibration_version" in body
 
+    def test_health_model_details_returns_artifact_and_metric_summary(self) -> None:
+        with TestClient(api_main.app) as client:
+            response = client.get("/api/v2/health/model/details")
+            assert response.status_code == 200
+            body = response.json()
+            assert body["status"] == "ok"
+            assert "health" in body
+            assert "artifacts" in body
+            assert "metrics" in body
+            assert "drift" in body
+            assert "registry" in body
+            assert "runtime" in body
+            assert "requests_total" in body["runtime"]
+            assert "errors_total" in body["runtime"]
+            assert "fusion_roc_auc" in body["metrics"]
+
+    def test_health_runtime_returns_runtime_snapshot(self) -> None:
+        with TestClient(api_main.app) as client:
+            response = client.get("/api/v2/health/runtime")
+            assert response.status_code == 200
+            body = response.json()
+            assert body["status"] == "ok"
+            runtime = body["runtime"]
+            assert "started_at" in runtime
+            assert "uptime_seconds" in runtime
+            assert "requests_total" in runtime
+            assert "errors_total" in runtime
+            assert "error_rate_total" in runtime
+            assert "endpoints" in runtime
+
     def test_score_happy_path(self) -> None:
         with TestClient(api_main.app) as client:
             response = client.post("/api/v2/score", json=_score_payload())
             assert response.status_code == 200
+            assert "X-Request-Id" in response.headers
             body = response.json()
             assert body["case_id"] == "case-v2"
             assert 0.0 <= body["global_risk"] <= 1.0
@@ -110,6 +141,17 @@ class TestApiV2Endpoints:
             response = client.post("/api/v2/score", json=payload)
             assert response.status_code == 422
 
+    def test_score_returns_422_on_invalid_tabular_features(self) -> None:
+        payload = _score_payload()
+        payload["tabular_features"] = {"growth_rate": "bad-number"}
+
+        with TestClient(api_main.app) as client:
+            response = client.post("/api/v2/score", json=payload)
+            assert response.status_code == 422
+            detail = response.json()["detail"]
+            assert isinstance(detail, list)
+            assert any("growth_rate" in str(item.get("loc", "")) for item in detail)
+
     def test_explain_happy_path(self) -> None:
         with TestClient(api_main.app) as client:
             response = client.post("/api/v2/explain", json=_score_payload())
@@ -119,6 +161,8 @@ class TestApiV2Endpoints:
             assert len(body["tabular_factors"]) > 0
             assert len(body["sequence_factors"]) > 0
             assert len(body["graph_factors"]) > 0
+            assert set(body["branch_scores"].keys()) == {"tabular", "sequence", "graph", "fusion"}
+            assert set(body["branch_modes"].keys()) == {"tabular", "sequence", "graph", "fusion"}
             assert 0.0 <= body["confidence"] <= 1.0
 
     def test_score_batch_partial_failure(self) -> None:

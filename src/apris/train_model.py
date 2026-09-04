@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 from typing import Any
@@ -14,7 +15,61 @@ import pandas as pd
 from sklearn.metrics import accuracy_score, confusion_matrix, roc_auc_score, roc_curve
 from sklearn.model_selection import train_test_split
 
-from apris.data_generator import FEATURE_COLUMNS, RISK_THRESHOLDS, SEED, build_dataset, validate_dataset
+from apris.cheops.infrastructure.ml.benchmark_v2 import (
+    run_tabular_benchmark,
+    save_benchmark_report,
+)
+from apris.cheops.infrastructure.ml.drift_v2 import (
+    FEATURE_PROFILE_V2_PATH,
+    build_drift_report,
+    build_feature_profile,
+    save_drift_report,
+    save_feature_profile,
+)
+from apris.cheops.infrastructure.ml.fusion_v2 import (
+    FUSION_V2_ARTIFACT_PATH,
+    FUSION_V2_METRICS_PATH,
+    save_fusion_artifact,
+    save_fusion_metrics,
+    train_fusion_meta,
+)
+from apris.cheops.infrastructure.ml.sequence_v2 import (
+    SEQUENCE_V2_ARTIFACT_PATH,
+    SEQUENCE_V2_METRICS_PATH,
+    save_sequence_artifact,
+    save_sequence_metrics,
+    train_sequence_artifact,
+)
+from apris.cheops.infrastructure.ml.graph_v2 import (
+    GRAPH_V2_ARTIFACT_PATH,
+    GRAPH_V2_METRICS_PATH,
+    save_graph_artifact,
+    save_graph_metrics,
+    train_graph_artifact,
+)
+from apris.cheops.infrastructure.ml.tabular_v2 import (
+    TABULAR_V2_BUNDLE_PATH,
+    TABULAR_V2_METRICS_PATH,
+    save_tabular_bundle,
+    save_tabular_metrics,
+    train_tabular_bundle,
+)
+from apris.cheops.infrastructure.ml.model_registry_v2 import (
+    MODEL_REGISTRY_V2_PATH,
+    attach_benchmark_report,
+    build_model_registry,
+    load_model_registry,
+    save_model_registry,
+)
+from apris.data_generator import (
+    FEATURE_BOUNDS,
+    FEATURE_COLUMNS,
+    RISK_THRESHOLDS,
+    SEED,
+    build_dataset,
+    validate_dataset,
+)
+from apris.etl import process_external_dataset
 
 ARTIFACTS_DIR = Path("artifacts")
 DATASET_PATH = ARTIFACTS_DIR / "synthetic_dataset.csv"
@@ -35,24 +90,82 @@ def _safe_divide(num: float, den: float) -> float:
     return float(num / den)
 
 
-import argparse
-from apris.etl import process_external_dataset
+def _validate_training_dataset(df: pd.DataFrame, *, source: str) -> None:
+    required = set(FEATURE_COLUMNS + ["label"])
+    missing = sorted(required - set(df.columns))
+    if missing:
+        raise ValueError(f"{source}: missing required columns: {missing}")
+
+    x = df[FEATURE_COLUMNS].astype(float)
+    if x.isna().any().any():
+        raise ValueError(f"{source}: NaN found in feature matrix.")
+    if not np.isfinite(x.to_numpy(dtype=float)).all():
+        raise ValueError(f"{source}: Inf found in feature matrix.")
+
+    y_raw = pd.to_numeric(df["label"], errors="coerce")
+    if y_raw.isna().any():
+        raise ValueError(f"{source}: label contains non-numeric values.")
+    y_values = y_raw.to_numpy(dtype=float)
+    if not np.isin(y_values, [0.0, 1.0]).all():
+        raise ValueError(f"{source}: label must contain only 0/1 values.")
+    if len(np.unique(y_values)) < 2:
+        raise ValueError(f"{source}: label must contain at least two classes for stratified split.")
+
+    for feature_name, (low, high) in FEATURE_BOUNDS.items():
+        series = x[feature_name]
+        if (series < low).any() or (series > high).any():
+            raise ValueError(
+                f"{source}: feature '{feature_name}' has values outside [{low}, {high}]"
+            )
+
+
+def _validate_dataset_for_source(df: pd.DataFrame, *, source: str) -> None:
+    # Synthetic datasets include `is_borderline`; keep strict generation quality checks there.
+    if "is_borderline" in df.columns:
+        validate_dataset(df)
+        return
+    _validate_training_dataset(df, source=source)
+
 
 def _prepare_dataset(external_data_path: str | None = None) -> pd.DataFrame:
     if external_data_path:
         print(f"Loading external dataset from {external_data_path} through ETL pipeline...")
         df = process_external_dataset(external_data_path)
-        validate_dataset(df)
+        _validate_dataset_for_source(df, source=f"external dataset '{external_data_path}'")
         return df
 
     if DATASET_PATH.exists():
         df = pd.read_csv(DATASET_PATH)
-        validate_dataset(df)
+        _validate_dataset_for_source(df, source=f"cached dataset '{DATASET_PATH}'")
         return df
 
     df = build_dataset(total_n=4000, seed=SEED)
     df.to_csv(DATASET_PATH, index=False)
     return df
+
+
+def _load_features_for_drift(dataset_path: str) -> pd.DataFrame:
+    path = Path(dataset_path)
+    if not path.exists():
+        raise FileNotFoundError(f"Drift dataset not found: {path}")
+    if path.suffix.lower() == ".csv":
+        df = pd.read_csv(path)
+    elif path.suffix.lower() == ".json":
+        df = pd.read_json(path)
+    else:
+        raise ValueError(f"Unsupported drift dataset format: {path.suffix}. Expected .csv or .json")
+
+    missing = [name for name in FEATURE_COLUMNS if name not in df.columns]
+    if missing:
+        raise ValueError(
+            f"Drift dataset must contain model feature columns: missing {missing}"
+        )
+    features_df = df[FEATURE_COLUMNS].astype(float).copy()
+    if features_df.isna().any().any():
+        raise ValueError("Drift dataset contains NaN values in feature columns.")
+    if not np.isfinite(features_df.to_numpy(dtype=float)).all():
+        raise ValueError("Drift dataset contains non-finite values in feature columns.")
+    return features_df
 
 
 def _check_no_data_leakage(x: pd.DataFrame) -> None:
@@ -91,6 +204,7 @@ def _plot_and_save_roc(y_true: pd.Series, y_score: np.ndarray) -> dict[str, list
 
 def train_and_save(df: pd.DataFrame, random_state: int = SEED) -> dict[str, Any]:
     _ensure_artifacts_dir()
+    _validate_training_dataset(df, source="training dataset")
 
     x = df[FEATURE_COLUMNS].copy()
     y = df["label"].astype(int).copy()
@@ -192,24 +306,105 @@ def train_and_save(df: pd.DataFrame, random_state: int = SEED) -> dict[str, Any]
         ]
         IMPORTANCES_JSON_PATH.write_text(json.dumps(importances, indent=2), encoding="utf-8")
 
+        # Train Cheops v2 tabular branch (global + typology probabilities) with calibration.
+        tabular_bundle, tabular_metrics = train_tabular_bundle(df, random_state=random_state)
+        bundle_path = save_tabular_bundle(tabular_bundle)
+        tabular_metrics_path = save_tabular_metrics(tabular_metrics)
+
+        # Train Cheops v2 sequence branch (trainable temporal surrogate + calibration).
+        sequence_artifact, sequence_metrics = train_sequence_artifact(
+            df,
+            random_state=random_state,
+        )
+        sequence_artifact_path = save_sequence_artifact(sequence_artifact)
+        sequence_metrics_path = save_sequence_metrics(sequence_metrics)
+
+        # Train Cheops v2 graph branch (trainable topology surrogate + calibration).
+        graph_artifact, graph_metrics = train_graph_artifact(
+            df,
+            random_state=random_state,
+        )
+        graph_artifact_path = save_graph_artifact(graph_artifact)
+        graph_metrics_path = save_graph_metrics(graph_metrics)
+
+        # Train Cheops v2 fusion meta-head (tabular + sequence + graph).
+        fusion_artifact, fusion_metrics = train_fusion_meta(
+            df,
+            tabular_bundle,
+            random_state=random_state,
+            sequence_artifact=sequence_artifact,
+            graph_artifact=graph_artifact,
+        )
+        fusion_artifact_path = save_fusion_artifact(fusion_artifact)
+        fusion_metrics_path = save_fusion_metrics(fusion_metrics)
+
+        # Save baseline feature profile for future drift checks.
+        feature_profile = build_feature_profile(
+            x,
+            dataset_name="train_dataset",
+            random_state=random_state,
+        )
+        feature_profile_path = save_feature_profile(feature_profile)
+
+        model_registry = build_model_registry(
+            legacy_metrics=metrics,
+            tabular_metrics=tabular_metrics,
+            sequence_metrics=sequence_metrics,
+            graph_metrics=graph_metrics,
+            fusion_metrics=fusion_metrics,
+            benchmark_report=None,
+        )
+        registry_path = save_model_registry(model_registry)
+
         # Log artifacts to MLflow
         mlflow.log_artifact(str(MODEL_PATH))
         mlflow.log_artifact(str(FEATURE_NAMES_PATH))
         mlflow.log_artifact(str(METRICS_PATH))
         mlflow.log_artifact(str(IMPORTANCES_JSON_PATH))
         mlflow.log_artifact(str(ROC_CURVE_PATH))
+        mlflow.log_artifact(str(bundle_path))
+        mlflow.log_artifact(str(tabular_metrics_path))
+        mlflow.log_artifact(str(sequence_artifact_path))
+        mlflow.log_artifact(str(sequence_metrics_path))
+        mlflow.log_artifact(str(graph_artifact_path))
+        mlflow.log_artifact(str(graph_metrics_path))
+        mlflow.log_artifact(str(fusion_artifact_path))
+        mlflow.log_artifact(str(fusion_metrics_path))
+        mlflow.log_artifact(str(feature_profile_path))
+        mlflow.log_artifact(str(registry_path))
         mlflow.sklearn.log_model(model, "lightgbm-model")
 
         return {
             "metrics": metrics,
             "importances": importances,
             "roc_points": roc_points,
+            "tabular_v2_metrics": tabular_metrics,
+            "sequence_v2_metrics": sequence_metrics,
+            "graph_v2_metrics": graph_metrics,
+            "fusion_v2_metrics": fusion_metrics,
+            "feature_profile": feature_profile,
+            "model_registry": model_registry,
         }
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train Cheops AI Risk Model")
     parser.add_argument("--data", type=str, help="Path to external CSV/JSON dataset (optional)")
+    parser.add_argument(
+        "--benchmark",
+        action="store_true",
+        help="Run tabular benchmark (LightGBM + optional CatBoost/XGBoost) and save report.",
+    )
+    parser.add_argument(
+        "--benchmark-lightgbm-only",
+        action="store_true",
+        help="Run benchmark only for LightGBM (skip optional CatBoost/XGBoost).",
+    )
+    parser.add_argument(
+        "--drift-data",
+        type=str,
+        help="Optional CSV/JSON dataset with FEATURE_COLUMNS to compute drift report.",
+    )
     args = parser.parse_args()
 
     dataset = _prepare_dataset(external_data_path=args.data)
@@ -245,6 +440,60 @@ def main() -> None:
     print(f"saved_features: {FEATURE_NAMES_PATH}")
     print(f"saved_metrics: {METRICS_PATH}")
     print(f"saved_feature_importances: {IMPORTANCES_JSON_PATH}")
+    print(f"saved_tabular_v2_bundle: {TABULAR_V2_BUNDLE_PATH}")
+    print(f"saved_tabular_v2_metrics: {TABULAR_V2_METRICS_PATH}")
+    print(f"saved_sequence_v2_artifact: {SEQUENCE_V2_ARTIFACT_PATH}")
+    print(f"saved_sequence_v2_metrics: {SEQUENCE_V2_METRICS_PATH}")
+    print(f"saved_graph_v2_artifact: {GRAPH_V2_ARTIFACT_PATH}")
+    print(f"saved_graph_v2_metrics: {GRAPH_V2_METRICS_PATH}")
+    print(f"saved_fusion_v2_artifact: {FUSION_V2_ARTIFACT_PATH}")
+    print(f"saved_fusion_v2_metrics: {FUSION_V2_METRICS_PATH}")
+    print(f"saved_feature_profile_v2: {FEATURE_PROFILE_V2_PATH}")
+    print(f"saved_model_registry_v2: {MODEL_REGISTRY_V2_PATH}")
+
+    if args.benchmark:
+        benchmark_report = run_tabular_benchmark(
+            dataset,
+            random_state=SEED,
+            include_optional=(not args.benchmark_lightgbm_only),
+        )
+        benchmark_path = save_benchmark_report(benchmark_report)
+
+        try:
+            registry_payload = load_model_registry()
+        except FileNotFoundError:
+            registry_payload = build_model_registry(
+                legacy_metrics=result["metrics"],
+                tabular_metrics=result["tabular_v2_metrics"],
+                sequence_metrics=result["sequence_v2_metrics"],
+                graph_metrics=result["graph_v2_metrics"],
+                fusion_metrics=result["fusion_v2_metrics"],
+                benchmark_report=benchmark_report,
+            )
+        else:
+            registry_payload = attach_benchmark_report(registry_payload, benchmark_report)
+
+        registry_path = save_model_registry(registry_payload)
+        print()
+        print("Tabular benchmark: OK")
+        print(f"benchmark_winner: {benchmark_report['winner']}")
+        print(f"saved_benchmark_report: {benchmark_path}")
+        print(f"saved_model_registry_v2: {registry_path}")
+
+    if args.drift_data:
+        drift_features = _load_features_for_drift(args.drift_data)
+        profile = result["feature_profile"]
+        drift_report = build_drift_report(
+            profile,
+            drift_features,
+            dataset_name=Path(args.drift_data).name,
+        )
+        drift_path = save_drift_report(drift_report)
+        print()
+        print("Drift check: OK")
+        print(f"drift_overall_level: {drift_report['overall_level']}")
+        print(f"drift_overall_psi: {drift_report['overall_psi']:.6f}")
+        print(f"saved_drift_report: {drift_path}")
 
 
 if __name__ == "__main__":

@@ -1,8 +1,8 @@
 """
-Cheops AI - Multi-Channel Fraud Intelligence System.
+Cheops AI - Система интеллектуального анализа мультиканальных рисков.
 
-Main Streamlit entry point. All workflow logic lives in pages/.
-This module only applies shared styling and renders the landing content.
+Главная точка входа Streamlit. Основная логика находится в pages/.
+Этот модуль применяет общие стили и отображает стартовый экран.
 """
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ _ASSETS_DIR = _SRC_DIR / "apris" / "frontend" / "assets"
 def _read_asset(name: str) -> str:
     path = _ASSETS_DIR / name
     if not path.exists():
-        raise FileNotFoundError(f"Asset not found: {path}")
+        raise FileNotFoundError(f"Ресурс не найден: {path}")
     return path.read_text(encoding="utf-8")
 
 
@@ -40,8 +40,8 @@ def _guard_streamlit_entrypoint() -> None:
 
         ctx = get_script_run_ctx(suppress_warning=True)
         if ctx is None:
-            print("This is a Streamlit application.")
-            print("Run it with: streamlit run app.py")
+            print("Это Streamlit-приложение.")
+            print("Запуск: streamlit run app.py")
             raise SystemExit(0)
     except Exception:
         return
@@ -53,6 +53,8 @@ def _set_style() -> None:
         f"""
         <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\"> 
         <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>
+        <link href=\"https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,200..700,0..1,-50..200\" rel=\"stylesheet\">
+        <link href=\"https://fonts.googleapis.com/icon?family=Material+Icons\" rel=\"stylesheet\">
         <link href=\"https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap\" rel=\"stylesheet\"> 
         <style>{css}</style>
         """
@@ -82,7 +84,7 @@ def _apply_matplotlib_theme() -> None:
 
 def main() -> None:
     st.set_page_config(
-        page_title="Cheops AI - Risk Intelligence",
+        page_title="Cheops AI - Интеллектуальный скрининг рисков",
         layout="wide",
         initial_sidebar_state="expanded",
     )
@@ -91,33 +93,33 @@ def main() -> None:
 
     _render_html(_read_asset("hero.html"))
 
-    with st.expander("Quick Start", expanded=False):
+    with st.expander("Краткая инструкция", expanded=False):
         c1, c2 = st.columns([1.2, 1])
         with c1:
             st.markdown(
                 """
-                1. Open **Scanner** in the sidebar.
-                2. Run batch scan (simulation or uploaded file).
-                3. Open **Anomaly Dashboard**.
-                4. Investigate top-risk entities and dossier details.
+                1. Откройте **Сканнер транзакций** в боковом меню.
+                2. Запустите пакетное сканирование (симуляция или загруженный файл).
+                3. Перейдите в **Дашборд аномалий**.
+                4. Изучите объекты с высоким риском и детали досье.
                 """
             )
         with c2:
-            st.markdown("**Reference formulas**")
+            st.markdown("**Базовые формулы**")
             st.code(
                 "growth_rate = (new_current - new_previous) / max(new_previous, 1)\n"
                 "referral_ratio = referred_current / max(new_current, 1)\n"
                 "payout_dependency = payouts_total / max(incoming_funds, 1)",
                 language="text",
             )
-            st.caption("Risk bands: <0.45 low, 0.45-0.70 medium, 0.70-0.85 high, >=0.85 critical")
+            st.caption("Зоны риска: <0.45 низкий, 0.45-0.70 средний, 0.70-0.85 высокий, >=0.85 критический")
 
     st.info(
-        "All data in this MVP is synthetic and processed locally. "
-        "No real personal records are used."
+        "Все данные в этом прототипе синтетические и обрабатываются локально. "
+        "Реальные персональные записи не используются."
     )
     st.markdown("---")
-    st.markdown("Select a page in the sidebar to continue.")
+    st.markdown("Выберите страницу в боковом меню для продолжения.")
 
 
 if __name__ == "__main__":

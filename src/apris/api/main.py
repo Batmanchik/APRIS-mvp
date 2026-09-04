@@ -1,12 +1,18 @@
-"""FastAPI REST API for Cheops AI risk scoring."""
+"""FastAPI REST API для риск-скоринга Cheops AI."""
 from __future__ import annotations
 
+import json
+import logging
+import time
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from typing import Any, NoReturn
+from uuid import uuid4
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from apris.api.observability import RuntimeObservability
 from apris.cheops.application.use_cases import ExplainCase, IngestCase, ScoreBatch, ScoreCase
 from apris.cheops.domain.typologies import TYPOLOGY_NAMES
 from apris.cheops.infrastructure.ml.engine_v2 import MultiBranchRiskEngine
@@ -16,6 +22,8 @@ from apris.cheops.interfaces.schemas_v2 import (
     BatchScoreV2Response,
     ExplainV2Request,
     ExplainV2Response,
+    V2RuntimeHealthResponse,
+    V2ModelHealthDetailsResponse,
     ScoreV2Request,
     ScoreV2Response,
     V2ModelHealthResponse,
@@ -39,10 +47,25 @@ _ingest_case: IngestCase | None = None
 _score_case: ScoreCase | None = None
 _score_batch: ScoreBatch | None = None
 _explain_case: ExplainCase | None = None
+_runtime_observability = RuntimeObservability()
+_logger = logging.getLogger("cheops.api")
+
+if not _logger.handlers:
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+
+
+def _log_structured(event: str, **fields: Any) -> None:
+    payload = {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "event": event,
+        **fields,
+    }
+    _logger.info(json.dumps(payload, ensure_ascii=False))
 
 
 def _initialize_state() -> None:
     global _model, _feature_names, _v2_engine, _ingest_case, _score_case, _score_batch, _explain_case
+    _runtime_observability.reset()
     _model = None
     _feature_names = None
     try:
@@ -69,11 +92,59 @@ async def _lifespan(_: FastAPI):
 
 
 app = FastAPI(
-    title="Cheops AI Risk API",
+    title="Cheops AI API риск-скоринга",
     version="2.1.0",
-    description="REST API for multi-channel fraud scoring (legal + crypto).",
+    description="REST API для мультиканального скоринга махинаций (легальные и крипто-каналы).",
     lifespan=_lifespan,
 )
+
+
+@app.middleware("http")
+async def observability_middleware(request: Request, call_next):
+    request_id = request.headers.get("X-Request-Id") or uuid4().hex
+    start = time.perf_counter()
+    path = request.url.path
+    method = request.method.upper()
+
+    try:
+        response = await call_next(request)
+        status_code = int(response.status_code)
+    except Exception as exc:
+        latency_ms = (time.perf_counter() - start) * 1000.0
+        _runtime_observability.record(
+            method=method,
+            path=path,
+            status_code=500,
+            latency_ms=latency_ms,
+        )
+        _log_structured(
+            "http_request",
+            request_id=request_id,
+            method=method,
+            path=path,
+            status_code=500,
+            latency_ms=round(latency_ms, 3),
+            exception=exc.__class__.__name__,
+        )
+        raise
+
+    latency_ms = (time.perf_counter() - start) * 1000.0
+    _runtime_observability.record(
+        method=method,
+        path=path,
+        status_code=status_code,
+        latency_ms=latency_ms,
+    )
+    response.headers["X-Request-Id"] = request_id
+    _log_structured(
+        "http_request",
+        request_id=request_id,
+        method=method,
+        path=path,
+        status_code=status_code,
+        latency_ms=round(latency_ms, 3),
+    )
+    return response
 
 
 class FeaturesRequest(BaseModel):
@@ -136,14 +207,14 @@ def _raise_unprocessable(exc: Exception) -> NoReturn:
 def _ensure_model() -> tuple[Any, list[str]]:
     if _model is None or _feature_names is None:
         _raise_unavailable(
-            "Model is not loaded. Train first: python -m apris.train_model"
+            "Модель не загружена. Сначала выполните обучение: python -m apris.train_model"
         )
     return _model, _feature_names
 
 
 def _ensure_v2_use_cases() -> tuple[ScoreCase, ScoreBatch, ExplainCase, MultiBranchRiskEngine]:
     if _score_case is None or _score_batch is None or _explain_case is None or _v2_engine is None:
-        _raise_unavailable("Cheops v2 engine is not initialized.")
+        _raise_unavailable("Движок Cheops v2 не инициализирован.")
     return _score_case, _score_batch, _explain_case, _v2_engine
 
 
@@ -158,7 +229,7 @@ def api_predict(body: FeaturesRequest) -> RiskResponse:
     features = body.model_dump()
     try:
         result = predict_risk(features, model=model, feature_names=feature_names)
-    except ValueError as exc:
+    except (ValueError, TypeError) as exc:
         _raise_unprocessable(exc)
     return RiskResponse(
         probability=result["probability"],
@@ -175,7 +246,7 @@ def api_predict_operational(body: OperationalRequest) -> RiskResponse:
     try:
         derived = operational_to_features(raw)
         result = predict_risk(derived, model=model, feature_names=feature_names)
-    except ValueError as exc:
+    except (ValueError, TypeError) as exc:
         _raise_unprocessable(exc)
     return RiskResponse(
         probability=result["probability"],
@@ -191,7 +262,7 @@ def api_explain(body: ExplainRequest) -> ExplainResponse:
     model, feature_names = _ensure_model()
     try:
         result = explain(body.features, top_k=body.top_k, model=model, feature_names=feature_names)
-    except ValueError as exc:
+    except (ValueError, TypeError) as exc:
         _raise_unprocessable(exc)
     return ExplainResponse(explanations=result)
 
@@ -217,6 +288,20 @@ def api_v2_health_model() -> V2ModelHealthResponse:
     return V2ModelHealthResponse(**engine.health())
 
 
+@app.get("/api/v2/health/model/details", response_model=V2ModelHealthDetailsResponse)
+def api_v2_health_model_details() -> V2ModelHealthDetailsResponse:
+    _, _, _, engine = _ensure_v2_use_cases()
+    payload = engine.health_details()
+    payload["runtime"] = _runtime_observability.snapshot()
+    return V2ModelHealthDetailsResponse(**payload)
+
+
+@app.get("/api/v2/health/runtime", response_model=V2RuntimeHealthResponse)
+def api_v2_health_runtime() -> V2RuntimeHealthResponse:
+    _ensure_v2_use_cases()
+    return V2RuntimeHealthResponse(status="ok", runtime=_runtime_observability.snapshot())
+
+
 @app.post("/api/v2/score", response_model=ScoreV2Response)
 def api_v2_score(body: ScoreV2Request) -> ScoreV2Response:
     score_case, _, _, _ = _ensure_v2_use_cases()
@@ -227,7 +312,7 @@ def api_v2_score(body: ScoreV2Request) -> ScoreV2Response:
             window_hours=body.window_hours,
             tabular_features=body.tabular_features,
         )
-    except ValueError as exc:
+    except (ValueError, TypeError) as exc:
         _raise_unprocessable(exc)
 
     return ScoreV2Response(
@@ -282,7 +367,7 @@ def api_v2_explain(body: ExplainV2Request) -> ExplainV2Response:
             window_hours=body.window_hours,
             tabular_features=body.tabular_features,
         )
-    except ValueError as exc:
+    except (ValueError, TypeError) as exc:
         _raise_unprocessable(exc)
 
     return ExplainV2Response(
@@ -290,5 +375,7 @@ def api_v2_explain(body: ExplainV2Request) -> ExplainV2Response:
         tabular_factors=result.tabular_factors,
         sequence_factors=result.sequence_factors,
         graph_factors=result.graph_factors,
+        branch_scores=result.branch_scores,
+        branch_modes=result.branch_modes,
         confidence=result.confidence,
     )

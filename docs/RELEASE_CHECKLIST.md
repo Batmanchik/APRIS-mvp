@@ -15,11 +15,19 @@
 - `scripts/app.ps1 stop`
 - `scripts/app.ps1 status`
 
+## Container Smoke
+- `docker compose up -d --build`
+- `docker compose ps`
+- `curl http://127.0.0.1:8000/api/v1/health`
+- `curl http://127.0.0.1:8501/_stcore/health`
+- `docker compose down -v`
+
 ## User Scenario Smoke
 - Scanner batch run (synthetic mode)
+- Scanner API-down path shows actionable message and retry button
 - Dashboard opens and displays risk rows
 - Manual check page scores a case and renders explanation
-- API endpoints healthy: `/api/v1/health`, `/api/v2/health/model`
+- API endpoints healthy: `/api/v1/health`, `/api/v2/health/model`, `/api/v2/health/runtime`
 
 ## Regression Notes
 - v1 endpoints must remain available without payload/response breaking changes.

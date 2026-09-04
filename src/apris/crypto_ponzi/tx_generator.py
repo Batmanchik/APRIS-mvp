@@ -210,7 +210,6 @@ def generate_company_transactions(
     # Counterparty type distribution for inflows
     phys_share = cfg["physical_inflow_share"]
     legal_share = cfg["legal_inflow_share"]
-    exch_in_share = cfg["exchange_inflow_share"]
     exch_out_share = cfg["exchange_outflow_share"]
 
     rows: list[dict[str, Any]] = []

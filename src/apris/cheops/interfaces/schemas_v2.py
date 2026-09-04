@@ -68,6 +68,8 @@ class ExplainV2Response(BaseModel):
     tabular_factors: list[dict[str, float | str]]
     sequence_factors: list[dict[str, float | str]]
     graph_factors: list[dict[str, float | str]]
+    branch_scores: dict[str, float]
+    branch_modes: dict[str, str]
     confidence: float
 
 
@@ -83,6 +85,21 @@ class V2ModelHealthResponse(BaseModel):
     fusion: str
     model_version: str
     calibration_version: str
+
+
+class V2ModelHealthDetailsResponse(BaseModel):
+    status: str
+    health: dict[str, Any]
+    artifacts: dict[str, bool]
+    metrics: dict[str, Any]
+    drift: dict[str, Any]
+    registry: dict[str, Any] | None = None
+    runtime: dict[str, Any] | None = None
+
+
+class V2RuntimeHealthResponse(BaseModel):
+    status: str
+    runtime: dict[str, Any]
 
 
 def ensure_typology_keys(typology_probs: dict[str, float]) -> dict[str, float]:

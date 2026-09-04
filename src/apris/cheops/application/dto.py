@@ -20,6 +20,8 @@ class ExplainOutput:
     tabular_factors: list[dict[str, float | str]]
     sequence_factors: list[dict[str, float | str]]
     graph_factors: list[dict[str, float | str]]
+    branch_scores: dict[str, float]
+    branch_modes: dict[str, str]
     confidence: float
 
 
