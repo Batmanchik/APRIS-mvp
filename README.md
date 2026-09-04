@@ -133,6 +133,33 @@ Runtime inference behavior for v2:
 - If `cheops_v2_fusion_meta.joblib` exists, engine uses calibrated logistic fusion head for `global_risk`.
 - If fusion artifact is absent, engine falls back to deterministic weighted fusion (v1-compatible behavior).
 
+## Simulation Layer and Event Features
+
+`src/apris/cheops/infrastructure/simulation/` generates a synthetic world of
+accounts, ATMs and transactions with known ground truth. It writes **events
+only** — who paid whom, how much, when. Every feature is derived by the
+detection layers from those events; the generator never writes a metric.
+
+`src/apris/cheops/infrastructure/ml/event_features_v2.py` computes graph and
+sequence features from that stream. It replaces the `*_from_tabular` builders,
+which produced structural and temporal matrices as hand-written linear
+combinations of nine period aggregates — so the graph branch never read a
+graph and `burst_ratio_90s` was derived from a quantity measured in days.
+
+```python
+from apris.cheops.infrastructure.simulation import generate_world, SimulationConfig
+from apris.cheops.infrastructure.simulation.acceptance import evaluate
+from apris.cheops.infrastructure.simulation.cases import build_cases
+
+world = generate_world(SimulationConfig())   # ~2 min, ~320k events
+report = evaluate(world)                      # layer-0 acceptance criterion
+cases = build_cases(world)                    # labelled cases for detectors
+```
+
+Details: [docs/SIMULATION_LAYER.md](docs/SIMULATION_LAYER.md).
+Measured findings: [docs/AUDIT_FINDINGS_2026-09-04.md](docs/AUDIT_FINDINGS_2026-09-04.md).
+Plan: [docs/RESEARCH_PLAN_RKNP_2026.md](docs/RESEARCH_PLAN_RKNP_2026.md).
+
 ## Test and Quality Workflow
 Install dev tools:
 
