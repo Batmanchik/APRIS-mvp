@@ -241,7 +241,7 @@ def train_and_save(df: pd.DataFrame, random_state: int = SEED) -> dict[str, Any]
         model.fit(x_train, y_train)
 
         y_pred = model.predict(x_test)
-        y_proba = model.predict_proba(x_test)[:, 1]
+        y_proba = np.asarray(model.predict_proba(x_test), dtype=float)[:, 1]
         cm = confusion_matrix(y_test, y_pred, labels=[0, 1])
         roc_points = _plot_and_save_roc(y_test, y_proba)
 

@@ -202,10 +202,10 @@ def train_fusion_meta(
     )
     meta_model.fit(meta_train[FUSION_FEATURE_NAMES], y_train.to_numpy(dtype=int))
 
-    val_raw = np.asarray(meta_model.predict_proba(meta_val[FUSION_FEATURE_NAMES])[:, 1], dtype=float)
+    val_raw = np.asarray(meta_model.predict_proba(meta_val[FUSION_FEATURE_NAMES]), dtype=float)[:, 1]
     calibrator = _fit_isotonic(y_val, val_raw)
 
-    test_raw = np.asarray(meta_model.predict_proba(meta_test[FUSION_FEATURE_NAMES])[:, 1], dtype=float)
+    test_raw = np.asarray(meta_model.predict_proba(meta_test[FUSION_FEATURE_NAMES]), dtype=float)[:, 1]
     test_cal = _apply_calibration(test_raw, calibrator)
     test_pred = (test_cal >= 0.5).astype(int)
 

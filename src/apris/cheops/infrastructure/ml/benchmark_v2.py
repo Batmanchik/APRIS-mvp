@@ -160,7 +160,7 @@ def run_tabular_benchmark(
 
         try:
             model.fit(x_train, y_train)
-            proba = np.asarray(model.predict_proba(x_test)[:, 1], dtype=float)
+            proba = np.asarray(model.predict_proba(x_test), dtype=float)[:, 1]
             pred = (proba >= 0.5).astype(int)
             roc_auc = _safe_roc_auc(y_test, proba)
             accuracy = float(accuracy_score(y_test, pred))

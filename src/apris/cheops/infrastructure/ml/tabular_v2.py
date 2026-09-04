@@ -174,9 +174,9 @@ def train_tabular_bundle(
 
     global_model = lgb.LGBMClassifier(**params)
     global_model.fit(x_train, y_train)
-    global_val_raw = np.asarray(global_model.predict_proba(x_val)[:, 1], dtype=float)
+    global_val_raw = np.asarray(global_model.predict_proba(x_val), dtype=float)[:, 1]
     global_calibrator = _fit_isotonic(y_val, global_val_raw)
-    global_test_raw = np.asarray(global_model.predict_proba(x_test)[:, 1], dtype=float)
+    global_test_raw = np.asarray(global_model.predict_proba(x_test), dtype=float)[:, 1]
     global_test_cal = _apply_calibration(global_test_raw, global_calibrator)
 
     typology_models: dict[str, Any] = {}
@@ -190,9 +190,9 @@ def train_tabular_bundle(
         model = lgb.LGBMClassifier(**params)
         model.fit(x_train, y_train_bin)
 
-        val_raw = np.asarray(model.predict_proba(x_val)[:, 1], dtype=float)
+        val_raw = np.asarray(model.predict_proba(x_val), dtype=float)[:, 1]
         calibrator = _fit_isotonic(y_val_bin, val_raw)
-        test_raw = np.asarray(model.predict_proba(x_test)[:, 1], dtype=float)
+        test_raw = np.asarray(model.predict_proba(x_test), dtype=float)[:, 1]
         test_cal = _apply_calibration(test_raw, calibrator)
 
         typology_models[typology_name] = model

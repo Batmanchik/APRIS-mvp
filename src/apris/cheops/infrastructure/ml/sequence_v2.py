@@ -155,7 +155,7 @@ def predict_sequence_probabilities(
 ) -> np.ndarray:
     matrix = _validate_sequence_matrix(sequence_matrix)
     model, calibrator = _validate_sequence_artifact(artifact)
-    raw = np.asarray(model.predict_proba(matrix)[:, 1], dtype=float)
+    raw = np.asarray(model.predict_proba(matrix), dtype=float)[:, 1]
     return _apply_calibration(raw, calibrator)
 
 
@@ -192,10 +192,10 @@ def train_sequence_artifact(
     model = lgb.LGBMClassifier(**params)
     model.fit(x_train[SEQUENCE_FEATURE_NAMES], y_train.to_numpy(dtype=int))
 
-    val_raw = np.asarray(model.predict_proba(x_val[SEQUENCE_FEATURE_NAMES])[:, 1], dtype=float)
+    val_raw = np.asarray(model.predict_proba(x_val[SEQUENCE_FEATURE_NAMES]), dtype=float)[:, 1]
     calibrator = _fit_isotonic(y_val, val_raw)
 
-    test_raw = np.asarray(model.predict_proba(x_test[SEQUENCE_FEATURE_NAMES])[:, 1], dtype=float)
+    test_raw = np.asarray(model.predict_proba(x_test[SEQUENCE_FEATURE_NAMES]), dtype=float)[:, 1]
     test_cal = _apply_calibration(test_raw, calibrator)
     test_pred = (test_cal >= 0.5).astype(int)
 
