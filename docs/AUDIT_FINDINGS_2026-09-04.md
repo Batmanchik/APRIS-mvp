@@ -300,8 +300,46 @@ cash out at all. A ring made only of single-purpose accounts is structurally
 unambiguous, so a perfect score here measures how clean our fraud is, not how
 good the detector is.
 
-The next modelling step is therefore to give mules ordinary lives. Until then
-no classification figure from this simulator may be quoted as a capability.
+### Fixed: mules now have ordinary lives
+
+A mule is a person, not an account that exists to be a mule. Three quarters
+of them now draw a wage and spend it like anybody else, so the ring's events
+sit inside an ordinary history rather than being the whole of it. Exit
+behaviour varies: 15 % relay the money onward to another member instead of
+touching a machine, 20 % take only part of it and spend the remainder
+normally, the rest cash out in full.
+
+| | single-purpose mules | mules with lives |
+|---|---|---|
+| ROC-AUC, purged walk-forward | 1.0000 | **0.8111** |
+| PR-AUC | 1.0000 | **0.7087** |
+| coverage | 1.000 | 0.945 |
+| honest candidate size, median | 8 | 12 |
+| quintile ladder | monotonic, +1.000 | **not monotonic**, +0.615 |
+
+**0.8111 is the first honest baseline this project has produced.** Everything
+measured before it was measuring the simulator rather than the detector.
+
+Two observations came with it.
+
+**The obvious rule flags honest people more often than mules.** The
+fast-cash-out rule now catches 96 % of students who withdraw their money at
+once, 80 % of marketplace sellers, and **40 % of mules**. Anyone writing the
+first rule that comes to mind would produce a system that is worse than
+useless — it points away from the fraud. This is now pinned as an acceptance
+check rather than left as an anecdote.
+
+**The top quintile is not the most fraudulent.** The ladder reads 0.00, 0.23,
+0.85, 0.69, 0.62: the score separates but inverts at the top. A single AUC
+would have hidden that completely, which is the whole reason the ladder was
+added.
+
+One gap left open: `burst_ratio_90s` alone scores 0.9944 in-sample while the
+full model scores 0.8111 out-of-sample under purged walk-forward. The two are
+not directly comparable, but a gap that size says the time split is doing
+real work — periods differ, and a feature that separates over the whole
+dataset does not carry forward. Worth a dedicated experiment before any
+feature is called strong.
 
 
 ---

@@ -463,7 +463,13 @@ def _gen_crowd_collections(b: _Builder, merchants: list[str], terminals: list[st
 # ==========================================================================
 
 
-def _gen_mule_network(b: _Builder, terminals: list[str], index: int) -> SimulatedNetwork:
+def _gen_mule_network(
+    b: _Builder,
+    merchants: list[str],
+    terminals: list[str],
+    employers: list[str],
+    index: int,
+) -> SimulatedNetwork:
     """A fast mule network: source(s) -> mules -> ATM inside a tight window.
 
     Evasion knobs from the config decide how visible it is. We describe
@@ -491,6 +497,23 @@ def _gen_mule_network(b: _Builder, terminals: list[str], index: int) -> Simulate
                 opened_days_ago=(3, 120) if fresh else (60, 1500),
             )
         )
+
+    # A mule is a person, not a single-purpose account. Before and after the
+    # operation they draw an income and buy things like anybody else, so the
+    # ring's events sit inside an ordinary history rather than being the whole
+    # of it. Without this the account itself is a giveaway and the network
+    # never has to be found at all.
+    for mule in mules:
+        if b.rng.random() < 0.75:
+            employer = str(b.rng.choice(employers))
+            wage = b.lognormal(SALARY_RANGE[0], 0.5, 40_000.0, 900_000.0)
+            for month_start in range(0, b.config.days, 30):
+                day = month_start + int(b.rng.integers(1, 28))
+                if day >= b.config.days:
+                    break
+                when = b.moment(day, (9, 18))
+                b.emit(employer, mule, wage, when)
+                _spend_down(b, mule, wage, when, merchants, terminals)
 
     funder_count = max(1, min(knobs.funders, mule_count))
     funders = [b.new_account("FND", account_type=TYPE_COMPANY) for _ in range(funder_count)]
@@ -527,11 +550,28 @@ def _gen_mule_network(b: _Builder, terminals: list[str], index: int) -> Simulate
             b.emit(funder, mule, per_part, when)
             received += per_part
 
+        # Exit behaviour is not uniform. An earlier version had every mule do
+        # exactly one thing — receive and cash out in full — which made a ring
+        # structurally unambiguous and drove classification to a meaningless
+        # ROC-AUC of 1.0000. Real participants differ: some take the whole
+        # amount, some take part and leave a remainder, and some never touch
+        # an ATM at all because their role is to pass the money on.
+        exit_style = float(b.rng.random())
         delay = b.lognormal(MULE_DELAY_MEDIAN_MIN, MULE_DELAY_SIGMA, 0.4, 240.0)
-        b.cash_out(
-            mule, atm, received * float(b.rng.uniform(0.95, 1.0)),
-            arrival + timedelta(minutes=delay),
-        )
+        moment = arrival + timedelta(minutes=delay)
+
+        if exit_style < 0.15:
+            # Pure relay: hands the money to the next account in the chain
+            # rather than to a machine. Nothing about it looks like cash-out.
+            onward = mules[(position + 1) % len(mules)]
+            b.emit(mule, onward, received * float(b.rng.uniform(0.90, 0.99)), moment)
+        elif exit_style < 0.35:
+            # Partial cash-out; the remainder stays and is spent normally.
+            taken = received * float(b.rng.uniform(0.35, 0.75))
+            b.cash_out(mule, atm, taken, moment)
+            _spend_down(b, mule, received - taken, moment, merchants, terminals)
+        else:
+            b.cash_out(mule, atm, received * float(b.rng.uniform(0.95, 1.0)), moment)
 
     return SimulatedNetwork(
         network_id=f"NET{index:04d}",
@@ -653,7 +693,7 @@ def generate_world(config: SimulationConfig | None = None) -> SimulatedWorld:
 
     index = 1
     for _ in range(b.config.mule_networks):
-        network = _gen_mule_network(b, terminals, index)
+        network = _gen_mule_network(b, merchants, terminals, employers, index)
         b.world.networks.append(network)
         b.mark(list(network.account_ids), "mule")
         index += 1

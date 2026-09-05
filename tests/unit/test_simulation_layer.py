@@ -139,14 +139,62 @@ def test_cases_cover_all_four_kinds(world):
         assert counts.get(kind, 0) > 0, f"missing case kind: {kind}"
 
 
-def test_mule_operation_fits_in_its_window(world):
-    """A naive network must stay inside the configured time spread."""
-    cases = [c for c in build_cases(world) if c.kind == CASE_MULE_NETWORK]
-    assert cases
-    for case in cases:
-        members = set(case.member_ids)
-        inbound = [e for e in case.events if e.receiver_id in members and e.sender_id in members]
-        if len(inbound) < 2:
+def test_mule_funding_fits_in_its_window(world):
+    """The FUNDING of a ring stays inside the configured time spread.
+
+    Narrowed from "all internal events" deliberately. Some mules now relay
+    the money onward to another member after a delay instead of taking it to
+    a machine, so a member-to-member event can legitimately fall outside the
+    funding window. The window is a property of how the money is handed out,
+    not of everything the ring ever does.
+    """
+    networks = [n for n in world.networks if n.kind == "mule_fast"]
+    assert networks
+    for network in networks:
+        funders = set(network.organizer_ids)
+        members = set(network.account_ids)
+        funding = [
+            e for e in world.events
+            if e.sender_id in funders and e.receiver_id in members
+        ]
+        if len(funding) < 2:
             continue
-        span = max(e.ts for e in inbound) - min(e.ts for e in inbound)
+        span = max(e.ts for e in funding) - min(e.ts for e in funding)
         assert span <= timedelta(minutes=SMALL.evasion.time_spread_minutes + 5)
+
+
+def test_mules_are_not_single_purpose_accounts(world):
+    """A mule is a person, not an account that exists to be a mule.
+
+    Without ordinary income and spending the ring is structurally
+    unambiguous and classification returns a meaningless ROC-AUC of 1.0000 —
+    the account itself gives the answer and the network never has to be
+    found. Pinned because it is easy to simplify away again.
+    """
+    mules = [a for a, p in world.populations.items() if p == "mule"]
+    assert mules
+
+    by_account: dict[str, int] = {}
+    for event in world.events:
+        for side in (event.sender_id, event.receiver_id):
+            if side in set(mules):
+                by_account[side] = by_account.get(side, 0) + 1
+
+    busy = [account for account, count in by_account.items() if count > 4]
+    assert len(busy) / len(mules) > 0.4, (
+        "most mules have almost no history; they are single-purpose accounts again"
+    )
+
+
+def test_mule_exit_behaviour_varies(world):
+    """Not every mule walks to an ATM.
+
+    Some relay the money onward, some take only part of it. A ring where
+    every member does exactly the same thing is the thing that made the task
+    trivial.
+    """
+    cash_senders = {e.sender_id for e in world.events if e.asset_type == "cash"}
+    mules = {a for a, p in world.populations.items() if p == "mule"}
+    cashing = mules & cash_senders
+    assert cashing, "some mules must cash out"
+    assert len(cashing) < len(mules), "not every mule may cash out"

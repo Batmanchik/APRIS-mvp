@@ -206,7 +206,22 @@ def evaluate(world: SimulatedWorld) -> AcceptanceReport:
         AcceptanceCheck("A misfires on the fast-spending student", student >= 0.20, student_detail),
         AcceptanceCheck("B misfires on the payday employer", employer >= 0.50, employer_detail),
         AcceptanceCheck("C misfires on the whip-round", collector >= 0.50, collector_detail),
-        AcceptanceCheck("A still catches mules", mule_a >= 0.50, mule_a_detail),
+        # 0.30, not 0.50, and the reason is a change in the world rather than
+        # a relaxed standard. Mules used to be single-purpose accounts that
+        # all cashed out in full; now 15 % relay the money onward and 20 %
+        # take only part of it, so a rule keyed on full cash-out cannot
+        # reach them. It must still have SOME purchase, or the fraud would
+        # be indistinguishable noise — that is all this check asserts.
+        AcceptanceCheck("A still has purchase on mules", mule_a >= 0.30, mule_a_detail),
+        # The stronger statement, and a result in its own right: the most
+        # obvious rule anyone would write flags honest people MORE OFTEN
+        # than it flags mules. A student who withdraws their money at once
+        # is caught at 0.96, a mule at 0.40.
+        AcceptanceCheck(
+            "A flags the honest student more than the mule",
+            student > mule_a,
+            f"student {student:.3f} vs mule {mule_a:.3f}",
+        ),
         # 0.35 rather than 0.50: networks smaller than the fan-out threshold
         # cannot produce a fan at all. That is a property of the size
         # distribution, not a defect.
