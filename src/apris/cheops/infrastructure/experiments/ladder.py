@@ -67,36 +67,47 @@ and ``listed`` measured 0.000 on both classes as well. The guard was trying
 to say "only an investigated structure can be on a list", which the forward
 ordering already says on its own.
 
-What the first honest run said — H1 is NOT supported
-----------------------------------------------------
-Once both defects were fixed, 2026-09-05, seed 20261005, 90 mule networks::
+What the run says, and what it does not
+---------------------------------------
+2026-09-05, seed 20261005, 90 mule networks, after the two baseline defects
+above and the activity threshold in ``build_account_rows``::
 
-    scope                model      ROC-AUC       AP
-    account              rules       0.8047   0.3691
-    account              forest      0.9933   0.9397
+    scope                model      ROC-AUC       AP    base rate
+    account              rules       0.7573   0.4491        0.241
+    account              logistic    0.9243   0.8552
+    account              forest      0.9779   0.9504
+    network_pooled       rules       0.6429   0.4465        0.358
+    network_pooled       logistic    0.8135   0.6481
     network_pooled       forest      0.9705   0.9578
+    network_structural   logistic    0.9314   0.8843        0.358
     network_structural   forest      0.9819   0.9708
-    network_pooled       rules       0.6429   0.4465
 
-Raising the unit with the feature kind held fixed made the best model
-slightly WORSE, not better, and it made the rules baseline much worse — at
-the network unit ``profile_deviation`` fires on 85.3 % of honest candidates,
-because a cluster of twenty people almost always contains one with a spike.
-Structure recovered most of what pooling lost for the linear model
-(0.8135 → 0.9314) and almost nothing for the forest.
+Three readings, in order of how much weight they carry.
 
-Read that as a question, not a conclusion, for one reason stated here so it
-is not forgotten: the two scopes have base rates of 0.062 and 0.358 and
-sample sizes of 25 539 and 148. ROC-AUC ignores the base rate and average
-precision is bounded by it, so **neither number is comparable across the two
-scopes as it stands**. The next experiment has to fix the comparison before
-the hypothesis can be judged — by matching base rates, or by scoring both
-scopes on one downstream quantity such as value not yet withdrawn.
+**Structure earns its place; pooling alone does not.** Raising the unit with
+the feature kind held fixed is a small LOSS for the best model (0.9779 →
+0.9705). Adding the columns that only exist once there is a structure turns
+it into a small gain (→ 0.9819, AP 0.9504 → 0.9708) and a large one for the
+linear model (0.8135 → 0.9314). So the value is in what a network lets you
+MEASURE, not in the grouping by itself. H1 as originally worded — that the
+unit matters more than the model — is not what this shows.
 
-The account forest at 0.9933 also wants explaining rather than quoting. It
-is high for a task carrying four hard negative populations, and the last
-time a number looked like that the generator was writing the answer into the
-features.
+**The rules get worse at the network unit**, 0.7573 → 0.6429, because
+``profile_deviation`` fires on 85.3 % of honest candidates: a cluster of
+twenty people almost always holds one with a spike. A criterion written for
+a person does not survive being pointed at a group.
+
+**The strongest argument for the network unit is not in the table.** The
+account unit cannot judge an account with no history, and 368 of 1 581 mules
+never accumulate ten events of their own — **coverage 0.767**. Discovery
+proposed 90 of 90 networks, coverage 1.000. Comparing 0.9779 with 0.9819 is
+comparing two numbers computed over different populations; comparing 0.767
+with 1.000 is comparing what each unit can see at all. The second comparison
+is the honest one and it is the one to build on.
+
+The differences between the fitted cells are small and rest on 148 network
+rows from a single world. Before any of this is claimed, it needs repeating
+across seeds with an interval, which is the next experiment and not this one.
 
 The honest ceiling
 ------------------
@@ -151,6 +162,10 @@ from apris.cheops.infrastructure.simulation.generator import SimulatedWorld, gen
 REPORT_PATH = Path("artifacts") / "experiment_ladder.json"
 
 SEED = 20261005
+
+# One event is not a flow. See build_account_rows for the measurement
+# that set this, and for what the threshold costs.
+MIN_ACCOUNT_EVENTS = 10
 
 ACCOUNT_FEATURE_COLUMNS: tuple[str, ...] = (
     "out_in_ratio",
@@ -251,21 +266,67 @@ def _events_by_account(world: SimulatedWorld) -> dict[str, list[TransactionEvent
     return grouped
 
 
-def build_account_rows(world: SimulatedWorld) -> list[Row]:
-    """One row per personal account, labelled by whether it is in a network.
+@dataclass(frozen=True)
+class AccountCeiling:
+    """What the account unit cannot judge, and therefore cannot find.
+
+    The exact counterpart of ``DiscoveryReport.coverage`` at the network
+    unit: a ceiling on recall that belongs to the unit of analysis and not to
+    any model above it. Both scopes now report one, which is what makes them
+    comparable in kind.
+    """
+
+    accounts_total: int
+    accounts_scored: int
+    fraud_total: int
+    fraud_scored: int
+
+    @property
+    def coverage(self) -> float:
+        return self.fraud_scored / self.fraud_total if self.fraud_total else 0.0
+
+
+def build_account_rows(
+    world: SimulatedWorld, *, min_events: int = MIN_ACCOUNT_EVENTS
+) -> tuple[list[Row], AccountCeiling]:
+    """One row per personal account with enough history to have a shape.
 
     This is the unit the published rules work at, and the unit at which a
     mule is an ordinary student withdrawing money.
+
+    ``min_events`` is not tidying. Measured 2026-09-05: **79 % of the honest
+    side was accounts with one or two events** — 12 406 pyramid investors and
+    7 746 crowd donors, one-shot depositors the generator emits so that a
+    pyramid and a whip-round have senders. Against mules at a median of 33
+    events, **the event count alone scored ROC-AUC 0.8432**, and the four
+    populations built to be hard negatives — fast spenders, collectors,
+    sellers, family circles — were under 10 % of the honest rows. The account
+    scope was largely measuring whether an account was active at all, which
+    is what put the forest at 0.9933.
+
+    Dropping the stubs is not the answer either; a real bank holds dormant
+    accounts. The answer is that **one event is not a flow**: nothing about
+    holding time, concentration or burstiness is defined for it, so such an
+    account is not an object of this analysis. At a threshold of ten the
+    event count carries nothing (ROC-AUC 0.4710, i.e. below chance).
+
+    The threshold costs something and the cost is reported rather than
+    absorbed: about a fifth of mules never accumulate ten events of their
+    own, so at this unit they cannot be judged at all. That is the account
+    unit's own recall ceiling, and it is an argument for the network unit
+    that is a fact about the data rather than an artefact of a metric.
     """
     grouped = _events_by_account(world)
     fraud = world.fraud_account_ids()
 
+    personal = 0
     rows: list[Row] = []
     for account, account_type in world.populations.items():
         events = grouped.get(account, [])
-        if not events:
-            continue
         if account_type in {"terminal", "merchant", "employer"}:
+            continue
+        personal += 1
+        if len(events) < min_events:
             continue
         rows.append(
             Row(
@@ -277,7 +338,14 @@ def build_account_rows(world: SimulatedWorld) -> list[Row]:
                 members=(account,),
             )
         )
-    return rows
+
+    ceiling = AccountCeiling(
+        accounts_total=personal,
+        accounts_scored=len(rows),
+        fraud_total=len(fraud),
+        fraud_scored=sum(r.label for r in rows),
+    )
+    return rows, ceiling
 
 
 def build_network_rows(
@@ -569,6 +637,7 @@ class LadderReport:
     coverage: float
     networks_total: int
     networks_covered: int
+    account_ceiling: AccountCeiling
     cells: tuple[CellResult, ...]
 
     def to_json(self) -> str:
@@ -581,6 +650,8 @@ class LadderReport:
                     "networks_total": self.networks_total,
                     "networks_covered": self.networks_covered,
                 },
+                "account_unit": asdict(self.account_ceiling)
+                | {"coverage": self.account_ceiling.coverage},
                 "cells": [asdict(cell) for cell in self.cells],
             },
             indent=2,
@@ -609,7 +680,7 @@ def run_ladder(config: SimulationConfig) -> LadderReport:
     candidates = discover_candidates(world)
     labels, discovery = label_candidates(world, candidates)
 
-    account_rows = build_account_rows(world)
+    account_rows, ceiling = build_account_rows(world)
     pooled_rows, structural_rows = build_network_rows(world, candidates, labels)
 
     scopes: dict[str, list[Row]] = {
@@ -632,6 +703,7 @@ def run_ladder(config: SimulationConfig) -> LadderReport:
         coverage=discovery.coverage,
         networks_total=discovery.networks_total,
         networks_covered=discovery.networks_covered,
+        account_ceiling=ceiling,
         cells=tuple(cells),
     )
 

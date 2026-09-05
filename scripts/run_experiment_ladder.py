@@ -49,6 +49,13 @@ def main() -> int:
         f"({report.networks_covered}/{report.networks_total} networks proposed) "
         "- a recall ceiling no model above can lift"
     )
+    c = report.account_ceiling
+    print(
+        f"account unit coverage  {c.coverage:.3f} "
+        f"({c.fraud_scored}/{c.fraud_total} mules have enough history to be judged; "
+        f"{c.accounts_scored}/{c.accounts_total} accounts scored) "
+        "- the same kind of ceiling, at the other unit"
+    )
     print(f"{path} written in {time.time() - started:.1f}s")
     return 0
 
