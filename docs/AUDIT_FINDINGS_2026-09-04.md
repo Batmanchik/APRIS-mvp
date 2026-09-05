@@ -157,8 +157,9 @@ Also fixed in the same pass:
 
 ## Finding 4 — the case builder leaks the answer
 
-**Severity: critical. Status: open. Found by the validation methods on the
-day they were added, which is what they are for.**
+**Severity: critical. Status: ADDRESSED by
+`simulation/discovery.py`. Found by the validation methods on the day they
+were added, which is what they are for.**
 
 Purged walk-forward CV over case-level features returns **ROC-AUC 1.0000 on
 every split**, and naive k-fold returns the same. When the honest and the
@@ -195,7 +196,36 @@ measured task. Ground truth is used only to label a candidate after it has
 been found, and recall must then be reported over networks the clustering
 never proposed.
 
-Until that is done, no case-level figure may be quoted.
+### Fixed
+
+`discover_candidates` proposes clusters from the event stream alone, linking
+accounts that share a resource rather than accounts that pay each other:
+the same ATM inside a short window, a common funding ancestor within k hops,
+the same tight time window. Union-find over those links gives the candidates.
+A test asserts the guarantee directly — stripping every network from the
+world does not change a single candidate.
+
+Labels are attached afterwards, and that produces a number the previous
+design could not express at all:
+
+```
+candidates proposed from events alone   183
+real networks                           110
+proposed at least once                   96
+COVERAGE                              0.873   <- ceiling on recall
+never proposed                           14
+```
+
+**Coverage is a ceiling no downstream model can lift.** A network no candidate
+contains cannot be found however good the classifier is. Under the old design
+this number was 1.000 by construction and therefore meaningless.
+
+Still open: classification of the discovered candidates returns ROC-AUC
+1.0000, so the honest negatives among them are still too easy. The next step
+is to measure what the honest candidates actually consist of — if they are
+mostly small junk clusters rather than payrolls and whip-rounds, the
+discovery window is filtering the hard cases out before the model sees
+them.
 
 
 ---
