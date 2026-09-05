@@ -85,19 +85,44 @@ Window width `W` is the scale parameter: minutes for mule networks, months
 for pyramids. The same code covers both, which is what makes the old nine
 features a special case of the new layer rather than discarded work.
 
-## 5. Status
+## 5. Status — 2026-09-06
 
 | Component | State |
 |---|---|
-| Layer 0 simulator | **done**, accepted, 21 tests |
-| Acceptance criterion | **done**, with a second gate after the first proved too weak |
-| Account-level features | done (in the previous working tree, to be ported) |
+| Layer 0 simulator | **done**, accepted, tests |
+| Acceptance criterion | **done**, second gate added after the first proved weak |
+| Account-level features | **done** — `experiments/ladder.py` |
 | Real graph and sequence features | **done** — `ml/event_features_v2.py` |
-| Case builder | **done** — four paired case kinds |
-| Legacy model external validation | **done** — see AUDIT_FINDINGS |
-| Detector ladder on real matrices | open |
-| Evasion sweep | open |
-| Online evaluation | open |
+| Legacy nine from raw events | **done** — `ml/legacy_features_v2.py` |
+| Case builder | replaced by blind discovery with a reported ceiling |
+| Detector ladder on real matrices | **done** — E1/E2, `experiments/ladder.py` |
+| Published-rule baseline | **done** — `ml/baseline_afrd.py`, three of four criteria |
+| Ladder of worlds W1–W5 | **done** — `experiments/ladder_of_worlds.py` |
+| Five standard diagnostics | **done** — `reporting/diagnostics.py` |
+| Evasion sweep | two points measured, curve open |
+| Realistic base rate (E11) | **open, and it is the next thing** |
+| Crypto typologies in the generator | open — delegated |
+| Online evaluation (E6, E7) | open |
+
+Measured results and what each one does not prove: **`docs/RESULTS.md`**.
+
+### The week-3 checkpoint fired, and here is the answer
+
+§9 says that if the network level does not beat the account level, that is
+reported as the finding rather than hidden. It fired, and the answer turned
+out to be more useful than either half of H1.
+
+The network unit **does** beat the account unit — 0.965 to 0.999 against
+0.965 to 0.982 — on every rung it can see at all. It does not then degrade
+under evasion. It **disappears**: at six independent funders and four
+terminals, discovery no longer places even two members of most rings into one
+candidate, median overlap 1.000 → 0.000. The account unit does not notice,
+0.9648 → 0.9646.
+
+So neither unit dominates. One is stronger; the other is the one that
+survives an adversary who pays. H1 as worded — that the unit matters more
+than the model — is not what was found, and the finding that replaced it
+prices both sides of the exchange, which is a better sentence to defend.
 
 ## 6. Experiments
 
