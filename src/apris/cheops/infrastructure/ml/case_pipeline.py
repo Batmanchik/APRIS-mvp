@@ -324,8 +324,10 @@ def run_case_validation(
                 ),
             )
         )
-        pooled_scores.extend(probabilities.tolist())
-        pooled_labels.extend(y_test.tolist())
+        # ndarray.tolist() is typed as possibly nested, so the element type is
+        # asserted here rather than trusted from the array's shape.
+        pooled_scores.extend(float(p) for p in probabilities)
+        pooled_labels.extend(int(t) for t in y_test)
 
     single_feature = _single_feature_auc(dataset.features, labels)
 
