@@ -10,11 +10,14 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
+import pytest
+
 from apris.cheops.domain.models import TransactionEvent
 from apris.cheops.infrastructure.ml.baseline_afrd import (
     APPLICABLE_CRITERIA,
     UNAVAILABLE_CRITERIA,
     afrd_verdict,
+    criteria_for_scope,
 )
 
 T0 = datetime(2026, 4, 1, 9, 0, 0)
@@ -149,3 +152,56 @@ def test_score_is_the_share_of_expressible_criteria_that_fired():
     assert verdict.fired == 2
     assert verdict.score == 2 / 3
     assert verdict.flagged_any and verdict.flagged_two
+
+
+# ==========================================================================
+# Which criteria the score is taken over
+# ==========================================================================
+
+
+def test_shared_device_is_excluded_from_the_score_at_both_units():
+    """It abstains at one unit and is circular at the other.
+
+    Account: one account is not two people sharing hardware, measured 0.000
+    on both classes. Network: it fires on 100% of fraudulent candidates and
+    4.2% of honest ones because discovery links accounts BY the shared
+    terminal, so it reports which link built the candidate.
+    """
+    for scope in ("account", "network"):
+        assert "shared_device" not in criteria_for_scope(scope)
+        assert criteria_for_scope(scope) == ("listed", "profile_deviation")
+
+
+def test_an_unknown_scope_is_refused_rather_than_defaulted():
+    with pytest.raises(ValueError):
+        criteria_for_scope("cluster")
+
+
+def test_an_excluded_criterion_is_still_evaluated_and_reported():
+    """Excluding it from the score and hiding it are different acts. The
+    breakdown is the evidence for the exclusion."""
+    events = [
+        _event("M1", "ATM1", 200_000.0, 0, cash=True),
+        _event("M2", "ATM1", 200_000.0, 7, cash=True),
+    ]
+    verdict = afrd_verdict(["M1", "M2"], events, counted=criteria_for_scope("network"))
+    assert verdict.shared_device, "the criterion must still be visible"
+    assert verdict.fired == 0, "but it must not move the score"
+    assert verdict.score == 0.0
+
+
+def test_the_score_is_over_the_counted_criteria_only():
+    events = [
+        _event("M1", "ATM1", 200_000.0, 0, cash=True),
+        _event("M2", "ATM1", 200_000.0, 7, cash=True),
+        _event("M1", "KNOWN", 100_000.0, 20),
+    ]
+    verdict = afrd_verdict(
+        ["M1", "M2"],
+        events,
+        listed=frozenset({"KNOWN"}),
+        counted=criteria_for_scope("account"),
+    )
+    # listed fired, profile_deviation did not: one of two.
+    assert verdict.fired == 1
+    assert verdict.score == 0.5

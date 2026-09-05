@@ -41,25 +41,62 @@ is why **average precision is reported beside ROC-AUC** — ROC-AUC is
 insensitive to the base rate and would make the two scopes look comparable
 in a way they are not.
 
-Do not quote the network-scope rules cell
------------------------------------------
-Measured 2026-09-05: at the network scope the rule baseline reaches ROC-AUC
-0.9895, above every fitted model, and the whole of it is one criterion.
-``shared_device`` fires on **100 % of fraudulent candidates and 4.2 % of
-honest ones** — because discovery LINKS accounts by their shared terminal in
-the first place. The criterion is not detecting the ring, it is reporting
-which of the three link types built the candidate. That is circular, and a
-number produced that way does not survive being asked about.
+Why the baseline counts two criteria and not three
+--------------------------------------------------
+The first full run, on 2026-09-05, put the rule baseline at ROC-AUC 0.9895 at
+the network scope — above every fitted model. It was not a result. All of it
+came from ``shared_device``, which fired on **100 % of fraudulent candidates
+and 4.2 % of honest ones**, because discovery LINKS accounts by their shared
+terminal in the first place. The criterion was reporting which of the three
+link types had built the candidate, not whether the candidate was a ring. A
+baseline flattered by the same circularity the case builder was rewritten to
+remove is worse than one that flatters us, not better.
 
-``listed`` fires on nothing at all at that scope (0.000 on both classes): a
-candidate's events span the members' whole ordinary lives, so no candidate
-ever satisfies "this structure closed, and can therefore have been
-investigated". A criterion that cannot fire is abstaining, not passing.
+At the account scope the same criterion measured 0.000 on both classes over
+25 539 accounts, for the unrelated reason that one account is not two people
+sharing hardware. So it is unusable at either unit, and the score is taken
+over ``listed`` + ``profile_deviation`` at both — which is also what makes
+the H1 comparison legitimate: same rules, same columns, only the unit moves.
+Every criterion is still evaluated and reported by ``rule_breakdown``; that
+report is the evidence for the exclusion.
 
-So the honest baseline is the **account** scope, which is also where the
-published rules actually operate — a rule identifies a mule ACCOUNT. Both
-defects are recorded in the plan with their fixes; until those land, the
-network-scope rules row is diagnostic output and nothing more.
+The second defect was in the list, not the criteria. Listing a structure had
+required it to close within thirty days of its own start, and a candidate's
+events run through its members' whole ordinary lives, so nothing ever closed
+and ``listed`` measured 0.000 on both classes as well. The guard was trying
+to say "only an investigated structure can be on a list", which the forward
+ordering already says on its own.
+
+What the first honest run said — H1 is NOT supported
+----------------------------------------------------
+Once both defects were fixed, 2026-09-05, seed 20261005, 90 mule networks::
+
+    scope                model      ROC-AUC       AP
+    account              rules       0.8047   0.3691
+    account              forest      0.9933   0.9397
+    network_pooled       forest      0.9705   0.9578
+    network_structural   forest      0.9819   0.9708
+    network_pooled       rules       0.6429   0.4465
+
+Raising the unit with the feature kind held fixed made the best model
+slightly WORSE, not better, and it made the rules baseline much worse — at
+the network unit ``profile_deviation`` fires on 85.3 % of honest candidates,
+because a cluster of twenty people almost always contains one with a spike.
+Structure recovered most of what pooling lost for the linear model
+(0.8135 → 0.9314) and almost nothing for the forest.
+
+Read that as a question, not a conclusion, for one reason stated here so it
+is not forgotten: the two scopes have base rates of 0.062 and 0.358 and
+sample sizes of 25 539 and 148. ROC-AUC ignores the base rate and average
+precision is bounded by it, so **neither number is comparable across the two
+scopes as it stands**. The next experiment has to fix the comparison before
+the hypothesis can be judged — by matching base rates, or by scoring both
+scopes on one downstream quantity such as value not yet withdrawn.
+
+The account forest at 0.9933 also wants explaining rather than quoting. It
+is high for a task carrying four hard negative populations, and the last
+time a number looked like that the generator was writing the answer into the
+features.
 
 The honest ceiling
 ------------------
@@ -88,7 +125,11 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from apris.cheops.domain.models import TransactionEvent
-from apris.cheops.infrastructure.ml.baseline_afrd import afrd_verdict
+from apris.cheops.infrastructure.ml.baseline_afrd import (
+    AfrdVerdict,
+    afrd_verdict,
+    criteria_for_scope,
+)
 from apris.cheops.infrastructure.ml.event_features_v2 import (
     GRAPH_FEATURE_COLUMNS,
     SEQUENCE_FEATURE_COLUMNS,
@@ -321,13 +362,18 @@ class CriterionBreakdown:
         return self.fire_rate_fraud - self.fire_rate_honest
 
 
-def rule_breakdown(rows: Sequence[Row]) -> tuple[CriterionBreakdown, ...]:
-    """Per-criterion firing rates, using the same forward-built list."""
-    verdicts = _rule_verdicts(rows)
+def rule_breakdown(rows: Sequence[Row], scope: str) -> tuple[CriterionBreakdown, ...]:
+    """Per-criterion firing rates, using the same forward-built list.
+
+    Every criterion is reported, including the ones the score does not
+    count. That is the evidence for excluding them, and deleting it would
+    leave the exclusion resting on a sentence in a docstring.
+    """
+    verdicts = _rule_verdicts(rows, scope)
     fraud = [v for v, r in zip(verdicts, rows) if r.label == 1]
     honest = [v for v, r in zip(verdicts, rows) if r.label == 0]
 
-    def rate(group: Sequence[object], name: str) -> float:
+    def rate(group: Sequence[AfrdVerdict], name: str) -> float:
         if not group:
             return 0.0
         return float(np.mean([bool(getattr(v, name)) for v in group]))
@@ -342,42 +388,47 @@ def rule_breakdown(rows: Sequence[Row]) -> tuple[CriterionBreakdown, ...]:
     )
 
 
-def _rule_verdicts(rows: Sequence[Row]) -> list[object]:
-    ordered = sorted(range(len(rows)), key=lambda i: rows[i].ts)
-    listed: set[str] = set()
-    verdicts: list[object] = [None] * len(rows)
+def _rule_verdicts(rows: Sequence[Row], scope: str) -> list[AfrdVerdict]:
+    """Every row's verdict, with the list built strictly forward in time.
 
-    for position in ordered:
-        row = rows[position]
-        window_start = min(e.ts for e in row.events)
-        available = frozenset(listed - set(row.members))
-        verdicts[position] = afrd_verdict(row.members, row.events, listed=available)
-        if row.label == 1 and max(e.ts for e in row.events) <= window_start + timedelta(days=30):
-            listed.update(row.members)
-    return verdicts
+    Rows are visited in order of their own end, and a fraudulent row joins
+    the list only after it has been visited — so a row can never be scored
+    against itself, and never against anything that had not finished.
 
-
-def rule_scores(rows: Sequence[Row]) -> np.ndarray:
-    """AFRD criteria, with the list built from structures that closed earlier.
-
-    A real list of known mule accounts is the residue of past investigations,
-    so it is assembled here the same way: for each row, the members of every
-    fraudulent row whose last event predates this row's window. Nothing about
-    the row being scored enters its own list.
+    An earlier version also demanded that a structure close within thirty
+    days of its own start before it could be listed. That killed the
+    criterion outright at the network unit: a candidate's events run through
+    its members' whole ordinary lives, so nothing ever closed and ``listed``
+    measured 0.000 on both classes. The guard was trying to say "only an
+    investigated structure can be on a list", which the forward ordering
+    already says on its own.
     """
     ordered = sorted(range(len(rows)), key=lambda i: rows[i].ts)
+    counted = criteria_for_scope(scope)
     listed: set[str] = set()
-    scores = np.zeros(len(rows), dtype=float)
+    verdicts: list[AfrdVerdict | None] = [None] * len(rows)
 
     for position in ordered:
         row = rows[position]
-        window_start = min(e.ts for e in row.events)
         available = frozenset(listed - set(row.members))
-        scores[position] = afrd_verdict(row.members, row.events, listed=available).score
-        # Only structures that have finished by now can have been investigated.
-        if row.label == 1 and max(e.ts for e in row.events) <= window_start + timedelta(days=30):
+        verdicts[position] = afrd_verdict(
+            row.members, row.events, listed=available, counted=counted
+        )
+        if row.label == 1:
             listed.update(row.members)
-    return scores
+
+    return [v for v in verdicts if v is not None]
+
+
+def rule_scores(rows: Sequence[Row], scope: str) -> np.ndarray:
+    """AFRD criteria as one rankable number per row.
+
+    A real list of known mule accounts is the residue of past investigations,
+    so it is assembled the same way: forward in time, and never containing
+    the row being scored. One implementation, shared with the per-criterion
+    breakdown, because two walks over the same list drift apart.
+    """
+    return np.array([v.score for v in _rule_verdicts(rows, scope)], dtype=float)
 
 
 # ==========================================================================
@@ -457,6 +508,7 @@ def _pooled_out_of_fold(
 
 
 def evaluate_cell(rows: Sequence[Row], scope: str, model_name: str) -> CellResult:
+    rule_scope = "account" if scope == "account" else "network"
     columns = sorted(rows[0].features) if rows else []
     y_all = np.array([r.label for r in rows], dtype=int)
     base_rate = float(y_all.mean()) if len(y_all) else 0.0
@@ -464,10 +516,13 @@ def evaluate_cell(rows: Sequence[Row], scope: str, model_name: str) -> CellResul
     if model_name == "rules":
         # No fitting, so there is nothing to hold out from. The rules are
         # scored on every row, with the list built forward in time.
-        scores = rule_scores(rows)
+        scores = rule_scores(rows, rule_scope)
         truths = y_all
         folds = 0
-        note = "no fitting; scored on all rows with a forward-built list"
+        note = (
+            "no fitting; forward-built list; counted over "
+            + "+".join(criteria_for_scope(rule_scope))
+        )
     else:
         scores, truths, folds = _pooled_out_of_fold(rows, columns, model_name)
         note = "out-of-fold, purged walk-forward"

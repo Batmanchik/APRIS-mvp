@@ -92,13 +92,17 @@ class AfrdVerdict:
     #: a reader can see the baseline is scored out of three, not four.
     unavailable: tuple[str, ...] = UNAVAILABLE_CRITERIA
 
+    #: Criteria the score is actually taken over. Scope-dependent — see
+    #: ``criteria_for_scope``.
+    counted: tuple[str, ...] = APPLICABLE_CRITERIA
+
     @property
     def fired(self) -> int:
-        return int(self.listed) + int(self.shared_device) + int(self.profile_deviation)
+        return sum(int(bool(getattr(self, name))) for name in self.counted)
 
     @property
     def score(self) -> float:
-        return self.fired / len(APPLICABLE_CRITERIA)
+        return self.fired / len(self.counted) if self.counted else 0.0
 
     @property
     def flagged_any(self) -> bool:
@@ -107,6 +111,32 @@ class AfrdVerdict:
     @property
     def flagged_two(self) -> bool:
         return self.fired >= 2
+
+
+def criteria_for_scope(scope: str) -> tuple[str, ...]:
+    """Which criteria may be counted at a given unit of analysis.
+
+    ``shared_device`` is excluded everywhere, and for two different reasons
+    that happen to arrive at one answer.
+
+    At the ACCOUNT unit it cannot fire at all: one account is not two people
+    sharing hardware. Measured over 25 539 accounts it was 0.000 on both
+    classes. A criterion that cannot fire is abstaining, not passing.
+
+    At the NETWORK unit it fires on 100 % of fraudulent candidates and 4.2 %
+    of honest ones — and discovery LINKS accounts by their shared terminal in
+    the first place. It is reporting which of the three link types built the
+    candidate, not whether the candidate is a ring. Scoring the baseline on
+    that is the same circularity the case builder was rewritten to remove; it
+    would simply be pointing the other way, in the baseline's favour, which
+    is worse than pointing at our own.
+
+    Leaving the same two criteria at both units is also what makes the H1
+    comparison legitimate: same rules, same columns, only the unit moves.
+    """
+    if scope not in {"account", "network"}:
+        raise ValueError(f"unknown scope: {scope}")
+    return ("listed", "profile_deviation")
 
 
 def _criterion_listed(
@@ -186,8 +216,16 @@ def afrd_verdict(
     terminal_window: timedelta = DEFAULT_TERMINAL_WINDOW,
     min_history_days: int = DEFAULT_MIN_HISTORY_DAYS,
     deviation_factor: float = DEFAULT_DEVIATION_FACTOR,
+    counted: tuple[str, ...] = APPLICABLE_CRITERIA,
 ) -> AfrdVerdict:
-    """Score one candidate cluster by the three expressible criteria."""
+    """Score one candidate by the criteria this data can express.
+
+    Every criterion is always evaluated, so the per-criterion breakdown stays
+    available for inspection; ``counted`` decides which of them the composite
+    score is taken over. Reporting a criterion and excluding it from the
+    score are different acts, and hiding the first would delete the evidence
+    for the second.
+    """
     members = frozenset(member_ids)
     return AfrdVerdict(
         listed=_criterion_listed(members, events, listed),
@@ -195,4 +233,5 @@ def afrd_verdict(
         profile_deviation=_criterion_profile_deviation(
             members, events, min_history_days, deviation_factor
         ),
+        counted=counted,
     )

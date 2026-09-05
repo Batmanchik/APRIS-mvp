@@ -1,14 +1,14 @@
 {
   "cells": [
     {
-      "average_precision": 0.32633534362475053,
+      "average_precision": 0.36913307036757437,
       "base_rate": 0.06190532127334664,
       "folds": 0,
-      "ladder": "NOT monotonic, top-bottom spread +0.200, rank correlation +0.705",
+      "ladder": "NOT monotonic, top-bottom spread +0.204, rank correlation +0.710",
       "model": "rules",
-      "note": "no fitting; scored on all rows with a forward-built list",
+      "note": "no fitting; forward-built list; counted over listed+profile_deviation",
       "positives": 1581,
-      "roc_auc": 0.7960320503955927,
+      "roc_auc": 0.8046881959093606,
       "rows": 25539,
       "scope": "account"
     },
@@ -25,14 +25,14 @@
       "scope": "account"
     },
     {
-      "average_precision": 0.9397097230363609,
+      "average_precision": 0.9397097230363608,
       "base_rate": 0.06190532127334664,
       "folds": 4,
       "ladder": "monotonic, top-bottom spread +0.339, rank correlation +0.707",
       "model": "forest",
       "note": "out-of-fold, purged walk-forward",
       "positives": 1581,
-      "roc_auc": 0.9932918774758114,
+      "roc_auc": 0.9932918774758113,
       "rows": 25539,
       "scope": "account"
     },
@@ -49,14 +49,14 @@
       "scope": "account"
     },
     {
-      "average_precision": 0.9636363636363636,
+      "average_precision": 0.4465446555980883,
       "base_rate": 0.3581081081081081,
       "folds": 0,
-      "ladder": "monotonic, top-bottom spread +0.966, rank correlation +0.880",
+      "ladder": "NOT monotonic, top-bottom spread +0.455, rank correlation +0.605",
       "model": "rules",
-      "note": "no fitting; scored on all rows with a forward-built list",
+      "note": "no fitting; forward-built list; counted over listed+profile_deviation",
       "positives": 53,
-      "roc_auc": 0.9894736842105264,
+      "roc_auc": 0.6428997020854021,
       "rows": 148,
       "scope": "network_pooled"
     },
@@ -97,14 +97,14 @@
       "scope": "network_pooled"
     },
     {
-      "average_precision": 0.9636363636363636,
+      "average_precision": 0.4465446555980883,
       "base_rate": 0.3581081081081081,
       "folds": 0,
-      "ladder": "monotonic, top-bottom spread +0.966, rank correlation +0.880",
+      "ladder": "NOT monotonic, top-bottom spread +0.455, rank correlation +0.605",
       "model": "rules",
-      "note": "no fitting; scored on all rows with a forward-built list",
+      "note": "no fitting; forward-built list; counted over listed+profile_deviation",
       "positives": 53,
-      "roc_auc": 0.9894736842105264,
+      "roc_auc": 0.6428997020854021,
       "rows": 148,
       "scope": "network_structural"
     },
