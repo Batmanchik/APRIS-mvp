@@ -27,3 +27,7 @@ artifacts/cheops_v2_*.json
 # External datasets: downloaded on demand, never committed.
 # elliptic_txs_features.csv alone is ~690 MB.
 data/
+
+# Local secrets: API keys for the cheap-model helper. Never committed.
+.env.local
+.env
