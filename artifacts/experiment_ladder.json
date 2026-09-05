@@ -1,0 +1,163 @@
+{
+  "cells": [
+    {
+      "average_precision": 0.36913307036757437,
+      "base_rate": 0.06190532127334664,
+      "folds": 0,
+      "ladder": "NOT monotonic, top-bottom spread +0.204, rank correlation +0.710",
+      "model": "rules",
+      "note": "no fitting; forward-built list; counted over listed+profile_deviation",
+      "positives": 1581,
+      "roc_auc": 0.8046881959093606,
+      "rows": 25539,
+      "scope": "account"
+    },
+    {
+      "average_precision": 0.5101966726629819,
+      "base_rate": 0.06190532127334664,
+      "folds": 4,
+      "ladder": "NOT monotonic, top-bottom spread +0.308, rank correlation +0.718",
+      "model": "logistic",
+      "note": "out-of-fold, purged walk-forward",
+      "positives": 1581,
+      "roc_auc": 0.9308719266479236,
+      "rows": 25539,
+      "scope": "account"
+    },
+    {
+      "average_precision": 0.9397097230363608,
+      "base_rate": 0.06190532127334664,
+      "folds": 4,
+      "ladder": "monotonic, top-bottom spread +0.339, rank correlation +0.707",
+      "model": "forest",
+      "note": "out-of-fold, purged walk-forward",
+      "positives": 1581,
+      "roc_auc": 0.9932918774758113,
+      "rows": 25539,
+      "scope": "account"
+    },
+    {
+      "average_precision": 0.9394529284219122,
+      "base_rate": 0.06190532127334664,
+      "folds": 4,
+      "ladder": "NOT monotonic, top-bottom spread +0.325, rank correlation +0.717",
+      "model": "boosting",
+      "note": "out-of-fold, purged walk-forward",
+      "positives": 1581,
+      "roc_auc": 0.9806476064527561,
+      "rows": 25539,
+      "scope": "account"
+    },
+    {
+      "average_precision": 0.4465446555980883,
+      "base_rate": 0.3581081081081081,
+      "folds": 0,
+      "ladder": "NOT monotonic, top-bottom spread +0.455, rank correlation +0.605",
+      "model": "rules",
+      "note": "no fitting; forward-built list; counted over listed+profile_deviation",
+      "positives": 53,
+      "roc_auc": 0.6428997020854021,
+      "rows": 148,
+      "scope": "network_pooled"
+    },
+    {
+      "average_precision": 0.648093596572338,
+      "base_rate": 0.3581081081081081,
+      "folds": 5,
+      "ladder": "NOT monotonic, top-bottom spread +0.480, rank correlation +0.879",
+      "model": "logistic",
+      "note": "out-of-fold, purged walk-forward",
+      "positives": 53,
+      "roc_auc": 0.8135398737808376,
+      "rows": 148,
+      "scope": "network_pooled"
+    },
+    {
+      "average_precision": 0.9577510981182997,
+      "base_rate": 0.3581081081081081,
+      "folds": 5,
+      "ladder": "monotonic, top-bottom spread +1.000, rank correlation +0.916",
+      "model": "forest",
+      "note": "out-of-fold, purged walk-forward",
+      "positives": 53,
+      "roc_auc": 0.9704532415375788,
+      "rows": 148,
+      "scope": "network_pooled"
+    },
+    {
+      "average_precision": 0.8800262670825705,
+      "base_rate": 0.3581081081081081,
+      "folds": 5,
+      "ladder": "NOT monotonic, top-bottom spread +0.880, rank correlation +0.885",
+      "model": "boosting",
+      "note": "out-of-fold, purged walk-forward",
+      "positives": 53,
+      "roc_auc": 0.9495123350545037,
+      "rows": 148,
+      "scope": "network_pooled"
+    },
+    {
+      "average_precision": 0.4465446555980883,
+      "base_rate": 0.3581081081081081,
+      "folds": 0,
+      "ladder": "NOT monotonic, top-bottom spread +0.455, rank correlation +0.605",
+      "model": "rules",
+      "note": "no fitting; forward-built list; counted over listed+profile_deviation",
+      "positives": 53,
+      "roc_auc": 0.6428997020854021,
+      "rows": 148,
+      "scope": "network_structural"
+    },
+    {
+      "average_precision": 0.8843023943327625,
+      "base_rate": 0.3581081081081081,
+      "folds": 5,
+      "ladder": "monotonic, top-bottom spread +0.920, rank correlation +0.948",
+      "model": "logistic",
+      "note": "out-of-fold, purged walk-forward",
+      "positives": 53,
+      "roc_auc": 0.9314400458978772,
+      "rows": 148,
+      "scope": "network_structural"
+    },
+    {
+      "average_precision": 0.9707958113536348,
+      "base_rate": 0.3581081081081081,
+      "folds": 5,
+      "ladder": "monotonic, top-bottom spread +1.000, rank correlation +0.918",
+      "model": "forest",
+      "note": "out-of-fold, purged walk-forward",
+      "positives": 53,
+      "roc_auc": 0.9819277108433736,
+      "rows": 148,
+      "scope": "network_structural"
+    },
+    {
+      "average_precision": 0.8423293593053371,
+      "base_rate": 0.3581081081081081,
+      "folds": 5,
+      "ladder": "monotonic, top-bottom spread +0.800, rank correlation +0.893",
+      "model": "boosting",
+      "note": "out-of-fold, purged walk-forward",
+      "positives": 53,
+      "roc_auc": 0.9396156052782559,
+      "rows": 148,
+      "scope": "network_structural"
+    }
+  ],
+  "discovery": {
+    "coverage": 1.0,
+    "networks_covered": 90,
+    "networks_total": 90
+  },
+  "seed": 20261005,
+  "world": {
+    "accounts": 31663.0,
+    "events": 409682.0,
+    "fraud_accounts": 1581.0,
+    "fraud_share_of_personal": 0.059182451149210155,
+    "networks": 120.0,
+    "personal_accounts": 26714.0,
+    "terminals": 120.0
+  }
+}
