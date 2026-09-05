@@ -395,6 +395,50 @@ dataset does not carry forward. Worth a dedicated experiment before any
 feature is called strong.
 
 
+### The baseline is now reproducible, and the archived one is not
+
+The figure of 0.8111 above was produced in a working session and survived
+only as prose: no committed code re-derived it. That is the same defect class
+as the rest of this document one level up — a number a reader cannot check.
+
+`ml/case_pipeline.py` is the missing path (world → discovery → features from
+events → purged walk-forward), and `scripts/case_baseline.py` runs it end to
+end. On the default configuration, seed 42:
+
+```
+candidates            97
+of them networks      19
+base rate             0.1959
+COVERAGE              1.0000
+ROC-AUC (out-of-fold) 0.9095
+PR-AUC                0.8899
+scored folds          3 of 5
+quintile ladder       NOT monotonic, spread +1.000, rank correlation +0.887
+```
+
+**These are not the archived numbers, and the difference is not explained.**
+The archive records 225 candidates at base rate 0.489 and coverage 0.945;
+committed code gives 97 at 0.196 and 1.000. Discovery has not changed since
+that entry was written, so the likely cause is that the archived run used
+parameters or a world that were never committed. Until that is resolved, the
+figures in this block are the ones to quote, because they are the ones anyone
+can reproduce.
+
+Two things in the run deserve their own line.
+
+**Only three of five folds could be scored.** The purge starves the earliest
+folds of positives, so the pooled AUC rests on 45 test rows holding 19
+networks in total. That is a thin measurement and must not be presented as a
+settled one.
+
+**Two features separate backwards.** `graph_density` reads 0.065 and
+`graph_fanout_share` 0.041 as single-feature AUCs — far below 0.5, which
+means fraudulent candidates have *lower* values than honest ones. Honest
+candidates in this world are payrolls and whip-rounds, and a payroll is
+precisely a dense fan-out. The features work; the sign is the opposite of
+what their names suggest, and a reader shown only "AUC 0.04" would conclude
+they were broken.
+
 ---
 
 ## Finding 5 — the headline feature does not transfer to real data
@@ -470,13 +514,16 @@ together.
 
 ## What is still open
 
-1. **Rebuild the case builder without the answer file** (Finding 4). Blocks
-   every case-level number, and is now the highest-priority item.
-2. An honest referral-based business, so `referral_ratio` stops separating for
+1. An honest referral-based business, so `referral_ratio` stops separating for
    free (blocks any pyramid figure being quoted).
+2. **Training the sequence and graph branches on event-derived matrices.**
+   `engine_v2` already reads real events at inference time, but the graph and
+   sequence models were fitted on `build_*_matrix_from_tabular`, so the
+   service runs both branches as heuristic proxies. The interface says so on
+   screen; the fix is to retrain on `build_*_matrix_from_events`.
 3. Retraining and calibrating the legacy model on flow-derived features.
-4. Wiring the real event matrices into `engine_v2` in place of the
-   `*_from_tabular` builders.
+4. **Reconciling the archived case-level numbers with the reproducible ones**
+   (Finding 4), or withdrawing the archived ones.
 5. The evasion sweep and the detectability curve.
 6. An account-level labelled graph, if one can be obtained, to separate the
    two surviving explanations in Finding 5.

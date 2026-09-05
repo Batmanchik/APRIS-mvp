@@ -13,7 +13,8 @@ It combines ML risk scoring, ETL for transaction logs, a FastAPI backend, and a 
 - `src/apris/cheops/infrastructure/ml/tabular_v2.py` - tabular v2 bundle training (global + typology + isotonic calibration).
 - `src/apris/frontend/api_client.py` - HTTP client used by Streamlit pages.
 - `src/apris/frontend/scanner_pipeline.py` - optimized case builder for scanner page (feature/transaction modes).
-- `pages/` - Streamlit multipage UI (dashboard, scanner, manual check).
+- `pages/` - Streamlit multipage UI (network discovery, candidate dossier,
+  validation, manual check). No page loads a model: scoring goes through the API.
 - `tests/` - pytest-based test suite (`unit`, `api`, `smoke`).
 
 ## Runtime vs Source Directories
@@ -132,6 +133,47 @@ Runtime inference behavior for v2:
 - If graph artifact is absent, graph score falls back to deterministic heuristic.
 - If `cheops_v2_fusion_meta.joblib` exists, engine uses calibrated logistic fusion head for `global_risk`.
 - If fusion artifact is absent, engine falls back to deterministic weighted fusion (v1-compatible behavior).
+
+## Interface
+
+Four pages, and the order is the workflow:
+
+1. **Поиск сетей** — `discover_candidates` proposes clusters from the event
+   stream alone. Labels are attached afterwards, so the coverage shown is a
+   real ceiling on recall rather than 1.0 by construction.
+2. **Досье кандидата** — the candidate's own transfer graph, its ten
+   event-derived features, and the score returned by `/api/v2/score`. Branch
+   modes are shown as they are: a branch running a heuristic says so.
+3. **Валидация** — purged walk-forward, the quintile ladder, coverage and the
+   naive-rule acceptance check, all computed when the page opens.
+4. **Ручная проверка** — the original nine features for manual entry, with
+   the uncalibrated thresholds labelled as such, and a button that computes
+   the same nine from a pyramid organiser's real cash flow.
+
+Three things the interface deliberately does not do, each a defect that was
+removed rather than a precaution: draw a graph built from the features it
+claims to support, draw a structure derived from the verdict, or report a
+metric computed on a grouping the detector was handed in advance.
+`tests/unit/test_scanner_architecture.py` parses every page and fails if any
+of them comes back.
+
+The dossier and manual pages need the API running:
+
+```powershell
+python -m uvicorn apris.api.main:app --port 8000
+streamlit run app.py
+```
+
+## Case-Level Baseline
+
+```powershell
+python scripts/case_baseline.py --seed 42
+```
+
+Rebuilds the candidate-classification numbers from scratch — discovery,
+features from events, purged walk-forward — and prints everything the
+write-up is allowed to quote about case-level detection. Written because the
+audit carried a baseline that no committed code reproduced.
 
 ## Simulation Layer and Event Features
 
