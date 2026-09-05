@@ -153,11 +153,58 @@ Also fixed in the same pass:
 
 ---
 
+---
+
+## Finding 4 — the case builder leaks the answer
+
+**Severity: critical. Status: open. Found by the validation methods on the
+day they were added, which is what they are for.**
+
+Purged walk-forward CV over case-level features returns **ROC-AUC 1.0000 on
+every split**, and naive k-fold returns the same. When the honest and the
+leaky protocol agree perfectly, the protocol is not what is wrong — the task
+is trivially separable, and something upstream is handing over the answer.
+
+It is `build_cases`. A `mule_network` case is assembled from
+`world.networks`, i.e. from the ground-truth file: the twenty accounts that
+form the network are grouped for the detector in advance. Payroll and
+whip-round cases are built from a single account each. So a fraudulent case
+arrives as a twenty-account cluster inside a twelve-minute window and an
+honest one arrives as one account, and a classifier separates them on almost
+any column.
+
+**A real detector is never handed the grouping.** It has to find candidate
+clusters itself and then decide which of them are networks. Defining the
+unit of analysis from the answers makes the hardest half of the problem
+disappear before modelling starts.
+
+Two consequences visible in the same run:
+
+- The quintile ladder is perfectly monotonic with a spread of +1.000, which
+  looks excellent and only confirms the separation is degenerate.
+- Permutation importance is **0.0000 for every feature including the
+  shuffled control**: with a perfect model and redundant features, permuting
+  any single column drops nothing. An importance table full of zeros is a
+  symptom of a saturated task, not of unimportant features.
+
+**Fix.** Candidate cases must be built by clustering accounts on shared
+resources — the same ATM, the same time window, a common ancestor within k
+hops — with no reference to `world.networks`. A candidate then may be a real
+network, a payroll, a whip-round or junk, and telling them apart becomes the
+measured task. Ground truth is used only to label a candidate after it has
+been found, and recall must then be reported over networks the clustering
+never proposed.
+
+Until that is done, no case-level figure may be quoted.
+
+
 ## What is still open
 
-1. An honest referral-based business, so `referral_ratio` stops separating for
+1. **Rebuild the case builder without the answer file** (Finding 4). Blocks
+   every case-level number, and is now the highest-priority item.
+2. An honest referral-based business, so `referral_ratio` stops separating for
    free (blocks any pyramid figure being quoted).
-2. Retraining and calibrating the legacy model on flow-derived features.
-3. Wiring the real event matrices into `engine_v2` in place of the
+3. Retraining and calibrating the legacy model on flow-derived features.
+4. Wiring the real event matrices into `engine_v2` in place of the
    `*_from_tabular` builders.
-4. The evasion sweep and the detectability curve.
+5. The evasion sweep and the detectability curve.
