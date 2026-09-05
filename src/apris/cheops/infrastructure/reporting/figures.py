@@ -16,7 +16,15 @@ from collections.abc import Sequence
 from pathlib import Path
 
 import matplotlib as mpl
-import matplotlib.pyplot as plt
+
+# Files, never a window. Without this the default backend on Windows is Tk,
+# which opens an event loop, and a script that draws several figures and then
+# exits dies in teardown with "main thread is not in main loop" — after some
+# of the files are already on disk, so it looks like a bug in the figure that
+# happened to be next. Must be set before pyplot is imported.
+mpl.use("Agg")
+
+import matplotlib.pyplot as plt  # noqa: E402  (backend must be chosen first)
 import numpy as np
 
 from apris.cheops.domain.models import TransactionEvent
