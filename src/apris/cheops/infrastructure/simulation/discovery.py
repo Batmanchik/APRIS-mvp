@@ -27,8 +27,10 @@ graph does not:
 2. **Common funding ancestor within k hops.** Randomising the direct sender
    pushes the shared origin one hop up rather than removing it; forty
    genuinely independent funders cost forty real accounts holding real money.
-3. **Same tight time window.** An operation run in one burst leaves its
-   members co-occurring in time whatever else is randomised.
+3. **Same recipient in a short window.** The mirror of the link above, and it
+   exists so the honest side of the task is representable: a whip-round is
+   forty people paying one collector, and without this link those forty share
+   nothing the other rules can see.
 
 Connected components of that link graph are the candidates. A candidate may
 turn out to be a ring, a payroll, a whip-round, or junk — telling them apart
@@ -44,7 +46,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from apris.cheops.domain.models import TransactionEvent
 from apris.cheops.infrastructure.simulation.config import ASSET_CASH
@@ -62,6 +64,16 @@ MIN_CANDIDATE_SIZE = 3
 # Discovery must not return one giant blob; a component past this is split
 # off as unusable rather than silently dominating every metric.
 MAX_CANDIDATE_SIZE = 400
+
+# A receiver paid by more distinct accounts than this over the whole period
+# is a hub by nature — a merchant, an exchange, a utility. Linking everyone
+# who ever paid one would merge unrelated people into a single component.
+DEFAULT_HUB_DEGREE_CAP = 120
+
+# An intermediary paying more distinct receivers than this is not relaying,
+# it is distributing. Expansion stops there so one shop cannot join every
+# customer to every other.
+DEFAULT_RELAY_FAN_CAP = 25
 
 
 @dataclass(frozen=True)
@@ -164,51 +176,112 @@ def _link_shared_terminal(
 
 
 def _link_common_ancestor(
-    events: list[TransactionEvent], union: _Union, hops: int, window: timedelta
+    events: list[TransactionEvent],
+    union: _Union,
+    hops: int,
+    window: timedelta,
+    relay_fan_cap: int,
 ) -> None:
     """Accounts fed, directly or within k hops, from the same origin.
 
     Randomising the immediate sender moves the shared origin up a hop; it
     does not remove it, unless the organiser buys genuinely independent
     funding for every mule.
+
+    The time attached to a link is the moment money arrived ALONG THAT PATH,
+    not the account's most recent activity. An earlier version used the
+    latter, and it quietly broke the honest side of the task: two employees
+    paid by one company on the same payday were not linked, because their
+    "time" was whichever salary happened to be their last. Payrolls then
+    never appeared as candidates at all, honest clusters came out at a
+    median size of three against eleven for rings, and a classifier
+    separated the two on size alone.
     """
-    incoming: dict[str, list[TransactionEvent]] = defaultdict(list)
+    outgoing: dict[str, list[TransactionEvent]] = defaultdict(list)
     for event in events:
         if event.asset_type != ASSET_CASH:
-            incoming[event.receiver_id].append(event)
+            outgoing[event.sender_id].append(event)
 
-    def ancestors(account: str) -> set[str]:
-        seen: set[str] = set()
-        frontier = {account}
-        for _ in range(hops):
-            nxt: set[str] = set()
-            for node in frontier:
-                for event in incoming.get(node, []):
-                    if event.sender_id not in seen:
-                        nxt.add(event.sender_id)
-            seen |= nxt
-            frontier = nxt
-            if not frontier:
-                break
-        return seen
+    # ancestor -> [(account, time money arrived along this path)]
+    reach: dict[str, list[tuple[str, datetime]]] = defaultdict(list)
+    for sender, sent in outgoing.items():
+        for event in sent:
+            reach[sender].append((event.receiver_id, event.ts))
 
-    fed_by: dict[str, list[tuple[str, TransactionEvent]]] = defaultdict(list)
-    for account, arrivals in incoming.items():
-        for ancestor in ancestors(account):
-            latest = max(arrivals, key=lambda e: e.ts)
-            fed_by[ancestor].append((account, latest))
+    # Expansion must not pass THROUGH a hub. An account paying hundreds of
+    # distinct receivers — an employer, a pyramid core, a shop — links all of
+    # its descendants to each other at the next hop, and one such node is
+    # enough to merge the whole world.
+    #
+    # Measured before this guard: a single component of 5 398 accounts formed
+    # and was then discarded for exceeding the size cap, taking with it every
+    # salary earner, 243 fast spenders and 210 mules. The hard half of the
+    # task was being deleted silently, which is why the remaining candidates
+    # looked trivially separable.
+    fan_out = {sender: len({e.receiver_id for e in sent}) for sender, sent in outgoing.items()}
 
-    for children in fed_by.values():
+    for _ in range(max(0, hops - 1)):
+        extended: dict[str, list[tuple[str, datetime]]] = defaultdict(list)
+        for ancestor, children in reach.items():
+            for child, _arrived in children:
+                if fan_out.get(child, 0) > relay_fan_cap:
+                    continue
+                for event in outgoing.get(child, []):
+                    extended[ancestor].append((event.receiver_id, event.ts))
+        for ancestor, children in extended.items():
+            reach[ancestor].extend(children)
+
+    for children in reach.values():
         if len(children) < 2:
             continue
-        children.sort(key=lambda pair: pair[1].ts)
+        ordered = sorted(children, key=lambda pair: pair[1])
         left = 0
-        for right in range(len(children)):
-            while children[right][1].ts - children[left][1].ts > window:
+        for right in range(len(ordered)):
+            while ordered[right][1] - ordered[left][1] > window:
                 left += 1
             for middle in range(left, right):
-                if children[middle][0] != children[right][0]:
-                    union.union(children[middle][0], children[right][0], "common_ancestor")
+                if ordered[middle][0] != ordered[right][0]:
+                    union.union(ordered[middle][0], ordered[right][0], "common_ancestor")
+
+
+def _link_common_receiver(
+    events: list[TransactionEvent],
+    union: _Union,
+    window: timedelta,
+    hub_degree_cap: int,
+) -> None:
+    """Accounts that paid the same recipient inside one window.
+
+    The mirror image of the ancestor link, and it exists so the honest side
+    of the task is representable at all. A whip-round is forty people paying
+    one collector; without this link those forty share no resource the
+    other rules can see, the collector stands alone below the minimum size,
+    and the honest population never reaches the candidate set.
+
+    Receivers with very high lifetime in-degree are skipped. A merchant or
+    an exchange is a hub by its nature, and linking everyone who ever paid
+    one would merge unrelated people into a single blob.
+    """
+    by_receiver: dict[str, list[TransactionEvent]] = defaultdict(list)
+    for event in events:
+        if event.asset_type != ASSET_CASH:
+            by_receiver[event.receiver_id].append(event)
+
+    for arrivals in by_receiver.values():
+        if len({e.sender_id for e in arrivals}) > hub_degree_cap:
+            continue
+        arrivals.sort(key=lambda e: e.ts)
+        left = 0
+        for right in range(len(arrivals)):
+            while arrivals[right].ts - arrivals[left].ts > window:
+                left += 1
+            for middle in range(left, right):
+                if arrivals[middle].sender_id != arrivals[right].sender_id:
+                    union.union(
+                        arrivals[middle].sender_id,
+                        arrivals[right].sender_id,
+                        "common_receiver",
+                    )
 
 
 # ==========================================================================
@@ -223,6 +296,8 @@ def discover_candidates(
     ancestor_hops: int = DEFAULT_ANCESTOR_HOPS,
     min_size: int = MIN_CANDIDATE_SIZE,
     max_size: int = MAX_CANDIDATE_SIZE,
+    hub_degree_cap: int = DEFAULT_HUB_DEGREE_CAP,
+    relay_fan_cap: int = DEFAULT_RELAY_FAN_CAP,
 ) -> list[Candidate]:
     """Propose candidate clusters from events alone.
 
@@ -233,7 +308,8 @@ def discover_candidates(
     union = _Union()
 
     _link_shared_terminal(events, union, terminal_window)
-    _link_common_ancestor(events, union, ancestor_hops, terminal_window)
+    _link_common_ancestor(events, union, ancestor_hops, terminal_window, relay_fan_cap)
+    _link_common_receiver(events, union, terminal_window, hub_degree_cap)
 
     by_account: dict[str, list[TransactionEvent]] = defaultdict(list)
     for event in events:

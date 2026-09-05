@@ -220,12 +220,47 @@ never proposed                           14
 contains cannot be found however good the classifier is. Under the old design
 this number was 1.000 by construction and therefore meaningless.
 
-Still open: classification of the discovered candidates returns ROC-AUC
-1.0000, so the honest negatives among them are still too easy. The next step
-is to measure what the honest candidates actually consist of — if they are
-mostly small junk clusters rather than payrolls and whip-rounds, the
-discovery window is filtering the hard cases out before the model sees
-them.
+### The honest candidates were being deleted, not being easy
+
+Measuring what the honest candidates consisted of found the real cause, and
+it was not that the task is easy.
+
+Two defects, both in discovery itself:
+
+**The ancestor link used the wrong timestamp.** It attached a link to an
+account's most recent activity rather than to the moment money arrived along
+that path. Two employees paid by one company on the same payday were
+therefore not linked, because their "time" was whichever salary happened to
+be their last. Payrolls never became candidates at all.
+
+**One component swallowed the hard half of the task.** Two-hop expansion
+passed through hubs, so a single component of **5 398 accounts** formed —
+every salary earner, 243 fast spenders, 210 mules, the family circles — and
+was then discarded for exceeding the size cap. The confusable populations
+were being deleted silently, which is exactly why what remained looked
+trivially separable.
+
+Fixed by attaching the link to the arrival time along the path, capping the
+fan of an intermediary during expansion, and adding a common-receiver link so
+a whip-round (forty people paying one collector) can become a candidate at
+all.
+
+| | before | after |
+|---|---|---|
+| candidates | 183 | 714 |
+| base rate | 0.519 | **0.132** |
+| honest candidate size, max | 5 | **104** |
+| ROC-AUC, purged walk-forward | 1.0000 | **0.9886** |
+| quintile ladder | monotonic, +1.000 | **not monotonic**, +0.645 |
+
+The ladder turning non-monotonic is the informative part: the score separates
+but does not order, which a single AUC would have hidden.
+
+**Still open.** Salary earners remain absent from the candidate set even
+after the blob was dissolved, so payrolls — the honest structure that most
+resembles a ring's fan-out — are still not represented. Until they are, 0.9886
+is a ceiling measured against an incomplete set of negatives, and it should
+be quoted with that caveat attached.
 
 
 ---
