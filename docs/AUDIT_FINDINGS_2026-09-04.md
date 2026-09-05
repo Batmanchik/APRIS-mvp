@@ -198,6 +198,79 @@ never proposed.
 Until that is done, no case-level figure may be quoted.
 
 
+---
+
+## Finding 5 — the headline feature does not transfer to real data
+
+**Severity: high. Status: reported, not fixed. This is a negative result and
+it stands.**
+
+`graph_relay_share` was tested against the Elliptic Bitcoin dataset — 203 769
+real transaction nodes, 234 355 edges, 46 564 labelled (4 545 illicit). It is
+the only public dataset combining real transactions, real fraud labels and
+graph structure.
+
+Balanced sample of 2 400 labelled nodes, two-hop neighbourhood per node:
+
+| Feature | AUC on real data |
+|---|---|
+| `hub_share` | 0.615 |
+| `density` | 0.549 |
+| `fanout_share` | 0.529 |
+| **`relay_share`** | **0.515** |
+| `reciprocity` | 0.500 |
+
+On the simulator the same feature separates mule networks from everything
+else completely. On real labelled fraud it is barely above a coin flip. Only
+convergence (`hub_share`) carries anything, and weakly.
+
+### Ruling out the obvious explanation
+
+Elliptic exposes no amounts, so the test had to use a counting version of the
+feature rather than the value-weighted one. That is an obvious candidate
+explanation, and it is wrong. Running both versions on simulated data:
+
+```
+relay_share, value-weighted : AUC 1.0000
+relay_share, unweighted     : AUC 1.0000
+```
+
+The counting version loses nothing. **Missing amounts do not explain the
+failure.**
+
+### What remains, and what cannot be separated
+
+Two explanations survive, and the available data cannot distinguish them:
+
+1. **Different graph semantics.** Elliptic nodes are *transactions*, not
+   accounts. In Bitcoin's UTXO model every transaction consumes inputs and
+   produces outputs, so relaying is what the graph is made of rather than a
+   distinguishing shape.
+2. **Different fraud.** Elliptic's illicit class is ransomware, darknet
+   markets and scams. None of them is a source → mules → ATM cash-out, which
+   is the structure the feature encodes.
+
+Separating these needs an account-level labelled graph, and no public one
+exists.
+
+### What may and may not be claimed
+
+- **May:** the feature separates in simulation; the transfer test was run;
+  it did not transfer; the missing-amounts explanation is excluded.
+- **May not:** that the feature works on real banking data. It has not been
+  shown, and the one available check came back negative.
+
+Reporting this is not a setback to manage. A project whose only evidence is
+its own simulator and which never attempted an external check is weaker than
+one that attempted it and reports a null result with the reason.
+
+**Note on the simulated figure.** The AUC of 1.0000 quoted above for our own
+data is itself inflated by Finding 4 — the case builder groups accounts using
+the ground-truth file. Until that is fixed, "it works in simulation" is a
+weaker claim than the number suggests, and the two findings must be read
+together.
+
+
 ## What is still open
 
 1. **Rebuild the case builder without the answer file** (Finding 4). Blocks
@@ -208,3 +281,5 @@ Until that is done, no case-level figure may be quoted.
 4. Wiring the real event matrices into `engine_v2` in place of the
    `*_from_tabular` builders.
 5. The evasion sweep and the detectability curve.
+6. An account-level labelled graph, if one can be obtained, to separate the
+   two surviving explanations in Finding 5.

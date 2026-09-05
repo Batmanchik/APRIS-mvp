@@ -138,6 +138,12 @@ MULE_AMOUNT_SIGMA = 0.85
 FAST_SPENDER_AMOUNT_MEDIAN = 160_000.0
 FAST_SPENDER_AMOUNT_SIGMA = 0.95
 
+# REPORTED. Ring size, heavy-tailed. Reported cases range from a handful of
+# droppers to 150 in a single scheme (Aktobe region, 3.5 bn KZT). Replacing
+# an ASSUMED range of 8-40 that was four times below the observed maximum.
+MULE_COUNT_MIN = 6
+MULE_COUNT_MAX = 160
+
 ATM_DAILY_LIMIT = 2_000_000.0
 
 # REPORTED. Reporting threshold that structured amounts cluster below.

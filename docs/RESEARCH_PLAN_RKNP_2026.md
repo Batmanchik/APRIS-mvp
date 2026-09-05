@@ -25,8 +25,15 @@ pointing at proprietary industrial systems.
 | Incidents registered by 2026-01-01 | 80 871 |
 | Funds blocked | 2.8 bn KZT |
 | Mule share of incidents | 6.87 % |
-| Criminal cases since September 2025 | 700+ |
+| Criminal cases since September 2025 | **needs verification** — see note |
 | Dropper identification rules approved | April 2026 |
+
+**Number of criminal cases: do not quote either figure yet.** Secondary
+sources give both "700+ since September 2025" and "49 cases in four months,
+13 sent to court", an order of magnitude apart — probably different offences
+or different periods. Take the figure from the Prosecutor General's Office
+or the Committee on Legal Statistics before it goes near a slide. Every
+other number in the table above traces to a National Bank publication.
 
 The April rules define a mule by four criteria: transfers to listed persons,
 a shared phone, a shared IP or device, and deviation from the customer's usual

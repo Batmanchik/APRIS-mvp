@@ -23,3 +23,7 @@ dist/
 mlruns/
 artifacts/cheops_v2_*.joblib
 artifacts/cheops_v2_*.json
+
+# External datasets: downloaded on demand, never committed.
+# elliptic_txs_features.csv alone is ~690 MB.
+data/

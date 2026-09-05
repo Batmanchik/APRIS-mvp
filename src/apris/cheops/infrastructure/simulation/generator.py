@@ -39,6 +39,8 @@ from apris.cheops.infrastructure.simulation.config import (
     FREELANCE_JOB_RANGE,
     JURISDICTION,
     MULE_AMOUNT_MEDIAN,
+    MULE_COUNT_MAX,
+    MULE_COUNT_MIN,
     MULE_AMOUNT_SIGMA,
     MULE_DELAY_MEDIAN_MIN,
     MULE_DELAY_SIGMA,
@@ -468,7 +470,12 @@ def _gen_mule_network(b: _Builder, terminals: list[str], index: int) -> Simulate
     BEHAVIOUR here; not one metric is computed in this function.
     """
     knobs = b.config.evasion
-    mule_count = int(b.rng.integers(8, 41))
+    # REPORTED. Network size is heavy-tailed: most rings are small, a few
+    # are very large. A scheme uncovered in Aktobe region involved 150
+    # droppers and 3.5 bn KZT, so the earlier cap of 40 was four times below
+    # what actually occurs. A Pareto draw keeps the median near a dozen while
+    # letting the tail reach the observed scale.
+    mule_count = int(min(MULE_COUNT_MAX, MULE_COUNT_MIN + b.rng.pareto(1.6) * 9.0))
 
     # Account age is NOT a marker. An earlier version opened mule accounts
     # 3-90 days back against 60-1500 for everyone else, and a model split
