@@ -161,6 +161,21 @@ Measured findings: [docs/AUDIT_FINDINGS_2026-09-04.md](docs/AUDIT_FINDINGS_2026-
 Plan: [docs/RESEARCH_PLAN_RKNP_2026.md](docs/RESEARCH_PLAN_RKNP_2026.md).
 
 ## Test and Quality Workflow
+
+Run every gate CI runs, in the same order:
+
+```powershell
+python scripts/check_all.py           # everything
+python scripts/check_all.py --fast    # skip the slow test suite
+```
+
+Running a subset and reading it as "the gates pass" has now cost three red CI
+runs in a day: ruff, mypy and pytest passing says nothing about bandit, and
+bandit is what failed. The script also distinguishes FAIL from SUSPECT — a
+gate that fails while printing nothing is almost always a broken console
+script rather than broken code, which is exactly what `lint-imports.exe` did
+after the project directory was renamed.
+
 Install dev tools:
 
 ```powershell

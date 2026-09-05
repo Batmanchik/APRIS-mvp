@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import csv
 import io
+import urllib.parse
 import urllib.request
 import zipfile
 from dataclasses import dataclass
@@ -82,6 +83,29 @@ class EllipticGraph:
         }
 
 
+
+def _fetch_https(url: str, *, timeout: int = 600) -> bytes:
+    """Fetch a URL after proving it is https.
+
+    ``urlopen`` accepts ``file://`` and ``ftp://`` as readily as ``https``,
+    so an unchecked call is a file-read primitive wherever the URL can be
+    influenced. The scheme is asserted before the call rather than assumed
+    from the constant, so the guarantee survives someone later making the
+    mirror configurable.
+    """
+    parsed = urllib.parse.urlsplit(url)
+    if parsed.scheme != "https":
+        raise ValueError(f"refusing to fetch a non-https URL: {parsed.scheme or '(none)'}")
+    if not parsed.netloc:
+        raise ValueError("refusing to fetch a URL without a host")
+    # The scheme check above is the actual concern behind bandit's B310:
+    # urlopen will read file:// and ftp:// just as happily as https. The
+    # suppression is scoped to this one line and earns its place from the
+    # validation, not from convenience.
+    with urllib.request.urlopen(url, timeout=timeout) as response:  # nosec B310
+        return bytes(response.read())
+
+
 def download_if_missing(data_dir: Path = DEFAULT_DATA_DIR, *, with_features: bool = False) -> None:
     """Fetch the raw CSVs from the public PyG mirror.
 
@@ -95,8 +119,7 @@ def download_if_missing(data_dir: Path = DEFAULT_DATA_DIR, *, with_features: boo
         target = data_dir / name
         if target.exists():
             continue
-        with urllib.request.urlopen(f"{PYG_MIRROR}/{name}.zip", timeout=600) as response:
-            payload = response.read()
+        payload = _fetch_https(f"{PYG_MIRROR}/{name}.zip")
         with zipfile.ZipFile(io.BytesIO(payload)) as archive:
             archive.extractall(data_dir)
 
