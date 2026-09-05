@@ -70,9 +70,62 @@ Both the failure and the fix are pinned by tests.
 
 ---
 
-## Finding 2 — the legacy model ranks perfectly and detects nothing
+## Finding 2 — WITHDRAWN, and why it was wrong
 
-**Severity: critical. Status: open, requires recalibration and retraining.**
+**Status: this finding does not reproduce. It was our defect, not the
+model's, and the correction matters more than the original claim.**
+
+### What was reported
+
+The nine legacy features were computed from an independent event stream and
+the model scored every pyramid near 0.50, flagging **none of thirty** at its
+own high-risk threshold of 0.70. That was reported as a calibration failure:
+perfect ranking, zero detection.
+
+### What was actually happening
+
+Two of the nine features were coming out as flat zeros, and both because of
+defects in our simulator:
+
+- `growth_rate` was exactly 0.000 for every pyramid because the analysis
+  window was taken as the range of the events themselves, and ordinary
+  spending drags an account's tail far past the horizon, moving the midpoint.
+- `reinvestment_rate` was exactly 0.000 because our investors deposited once
+  and never again, which real participants do not.
+
+Both were fixed. Re-run on the current world, the same model, unchanged:
+
+| | first run | after the generator was fixed |
+|---|---|---|
+| `growth_rate`, pyramids | 0.000 | 1.072 |
+| `reinvestment_rate`, pyramids | 0.000 | 0.232 |
+| pyramids found at threshold 0.70 | **0 / 30** | **40 / 40** |
+| ROC-AUC | 1.0000 | 0.9994 |
+| false alarms | 0 / 220 | 12 / 180 |
+
+**We measured a model through a broken instrument and blamed the model.**
+Recorded rather than deleted, because the failure mode generalises: a
+component that reads flat zeros is far more likely to be badly fed than badly
+built, and the first move on seeing one should be to check the feed.
+
+### What is true now, with its own caveat
+
+The model detects the pyramids. It is not, however, a good result yet:
+`referral_ratio` reads 0.991 against 0.000 and `structural_depth` 16 against
+2, and both separate perfectly for one reason — **no honest population in the
+simulation pays referral bonuses**. A legitimate referral-marketing business
+would land in exactly that region.
+
+So the current 0.9994 measures a task made artificially easy, and the
+original criticism of the model's calibration is neither confirmed nor
+refuted: it has not been tested against a fair opponent. Closing that gap is
+the open item.
+
+---
+
+## Finding 2b — the original calibration concern, still untested
+
+**Severity: medium. Status: open.**
 
 The nine legacy features were computed from an independent event stream for
 the first time — external validation that was structurally impossible while
