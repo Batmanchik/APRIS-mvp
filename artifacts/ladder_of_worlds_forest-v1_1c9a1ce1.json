@@ -1,0 +1,567 @@
+{
+  "detector": "forest-v1",
+  "generated_at": "2026-09-05T18:19:29+00:00",
+  "results": [
+    {
+      "key": "W1",
+      "seed": 20261005,
+      "title": "negatives that look nothing alike",
+      "units": [
+        {
+          "average_precision": 0.9527857884850923,
+          "base_rate": 0.23396136417839256,
+          "coverage": 0.765210608424337,
+          "positives": 981,
+          "recall_at_budget": 0.42857142857142855,
+          "roc_auc": 0.9819105527053401,
+          "rows": 4193,
+          "unit": "account"
+        },
+        {
+          "average_precision": 1.0,
+          "base_rate": 0.5876288659793815,
+          "coverage": 1.0,
+          "positives": 57,
+          "recall_at_budget": 0.1794871794871795,
+          "roc_auc": 1.0,
+          "rows": 97,
+          "unit": "network"
+        }
+      ],
+      "why": "A check on the instrument. Salaries arrive monthly and are spent over weeks; a ring arrives and leaves in minutes. If a detector cannot separate those it is broken rather than challenged.",
+      "world": {
+        "accounts": 17596.0,
+        "events": 333185.0,
+        "fraud_accounts": 1282.0,
+        "fraud_share_of_personal": 0.17086498733839797,
+        "networks": 60.0,
+        "personal_accounts": 7503.0,
+        "terminals": 40.0
+      }
+    },
+    {
+      "key": "W1",
+      "seed": 20261006,
+      "title": "negatives that look nothing alike",
+      "units": [
+        {
+          "average_precision": 0.9233887303373546,
+          "base_rate": 0.20486965076242006,
+          "coverage": 0.7691597414589104,
+          "positives": 833,
+          "recall_at_budget": 0.4867149758454106,
+          "roc_auc": 0.9721120361485407,
+          "rows": 4066,
+          "unit": "account"
+        },
+        {
+          "average_precision": 0.9989784205693296,
+          "base_rate": 0.5742574257425742,
+          "coverage": 0.9833333333333333,
+          "positives": 58,
+          "recall_at_budget": 0.18181818181818182,
+          "roc_auc": 0.9987373737373738,
+          "rows": 101,
+          "unit": "network"
+        }
+      ],
+      "why": "A check on the instrument. Salaries arrive monthly and are spent over weeks; a ring arrives and leaves in minutes. If a detector cannot separate those it is broken rather than challenged.",
+      "world": {
+        "accounts": 16918.0,
+        "events": 325670.0,
+        "fraud_accounts": 1083.0,
+        "fraud_share_of_personal": 0.14960629921259844,
+        "networks": 60.0,
+        "personal_accounts": 7239.0,
+        "terminals": 40.0
+      }
+    },
+    {
+      "key": "W1",
+      "seed": 20261007,
+      "title": "negatives that look nothing alike",
+      "units": [
+        {
+          "average_precision": 0.9317786104898519,
+          "base_rate": 0.1660241583140581,
+          "coverage": 0.7663107947805456,
+          "positives": 646,
+          "recall_at_budget": 0.5922480620155038,
+          "roc_auc": 0.9808319211585843,
+          "rows": 3891,
+          "unit": "account"
+        },
+        {
+          "average_precision": 0.9988655700510494,
+          "base_rate": 0.57,
+          "coverage": 1.0,
+          "positives": 57,
+          "recall_at_budget": 0.1951219512195122,
+          "roc_auc": 0.9987492182614134,
+          "rows": 100,
+          "unit": "network"
+        }
+      ],
+      "why": "A check on the instrument. Salaries arrive monthly and are spent over weeks; a ring arrives and leaves in minutes. If a detector cannot separate those it is broken rather than challenged.",
+      "world": {
+        "accounts": 17091.0,
+        "events": 322801.0,
+        "fraud_accounts": 843.0,
+        "fraud_share_of_personal": 0.11816652649285113,
+        "networks": 60.0,
+        "personal_accounts": 7134.0,
+        "terminals": 40.0
+      }
+    },
+    {
+      "key": "W2",
+      "seed": 20261005,
+      "title": "+ negatives that empty the account too",
+      "units": [
+        {
+          "average_precision": 0.9487307575960612,
+          "base_rate": 0.23652602402217432,
+          "coverage": 0.772635814889336,
+          "positives": 768,
+          "recall_at_budget": 0.42036553524804177,
+          "roc_auc": 0.9793479911275997,
+          "rows": 3247,
+          "unit": "account"
+        },
+        {
+          "average_precision": 0.9912153776184023,
+          "base_rate": 0.6060606060606061,
+          "coverage": 1.0,
+          "positives": 60,
+          "recall_at_budget": 0.16279069767441862,
+          "roc_auc": 0.9898255813953488,
+          "rows": 99,
+          "unit": "network"
+        }
+      ],
+      "why": "The first real hard negative, and it shares the behaviour the exit is recognised by. Separating a mule from a fast spender is the task; separating one from a salary is not.",
+      "world": {
+        "accounts": 11491.0,
+        "events": 249307.0,
+        "fraud_accounts": 994.0,
+        "fraud_share_of_personal": 0.1532059186189889,
+        "networks": 60.0,
+        "personal_accounts": 6488.0,
+        "terminals": 40.0
+      }
+    },
+    {
+      "key": "W2",
+      "seed": 20261006,
+      "title": "+ negatives that empty the account too",
+      "units": [
+        {
+          "average_precision": 0.8915555898196587,
+          "base_rate": 0.23207776427703525,
+          "coverage": 0.7431906614785992,
+          "positives": 764,
+          "recall_at_budget": 0.42668428005284015,
+          "roc_auc": 0.957860078713543,
+          "rows": 3292,
+          "unit": "account"
+        },
+        {
+          "average_precision": 0.9963288359215593,
+          "base_rate": 0.59,
+          "coverage": 1.0,
+          "positives": 59,
+          "recall_at_budget": 0.1702127659574468,
+          "roc_auc": 0.9948420373952289,
+          "rows": 100,
+          "unit": "network"
+        }
+      ],
+      "why": "The first real hard negative, and it shares the behaviour the exit is recognised by. Separating a mule from a fast spender is the task; separating one from a salary is not.",
+      "world": {
+        "accounts": 11582.0,
+        "events": 249445.0,
+        "fraud_accounts": 1028.0,
+        "fraud_share_of_personal": 0.157427258805513,
+        "networks": 60.0,
+        "personal_accounts": 6530.0,
+        "terminals": 40.0
+      }
+    },
+    {
+      "key": "W2",
+      "seed": 20261007,
+      "title": "+ negatives that empty the account too",
+      "units": [
+        {
+          "average_precision": 0.9224271049558885,
+          "base_rate": 0.24047186932849365,
+          "coverage": 0.8006042296072508,
+          "positives": 795,
+          "recall_at_budget": 0.41414141414141414,
+          "roc_auc": 0.969995786181105,
+          "rows": 3306,
+          "unit": "account"
+        },
+        {
+          "average_precision": 0.9989784205693297,
+          "base_rate": 0.5957446808510638,
+          "coverage": 1.0,
+          "positives": 56,
+          "recall_at_budget": 0.1590909090909091,
+          "roc_auc": 0.9982517482517483,
+          "rows": 94,
+          "unit": "network"
+        }
+      ],
+      "why": "The first real hard negative, and it shares the behaviour the exit is recognised by. Separating a mule from a fast spender is the task; separating one from a salary is not.",
+      "world": {
+        "accounts": 11483.0,
+        "events": 248701.0,
+        "fraud_accounts": 993.0,
+        "fraud_share_of_personal": 0.1524408965305496,
+        "networks": 60.0,
+        "personal_accounts": 6514.0,
+        "terminals": 40.0
+      }
+    },
+    {
+      "key": "W3",
+      "seed": 20261005,
+      "title": "+ negatives with the same SHAPE",
+      "units": [
+        {
+          "average_precision": 0.9529764363625711,
+          "base_rate": 0.264934188322646,
+          "coverage": 0.7681017612524462,
+          "positives": 785,
+          "recall_at_budget": 0.375,
+          "roc_auc": 0.9798391295293627,
+          "rows": 2963,
+          "unit": "account"
+        },
+        {
+          "average_precision": 1.0,
+          "base_rate": 0.5225225225225225,
+          "coverage": 1.0,
+          "positives": 58,
+          "recall_at_budget": 0.18,
+          "roc_auc": 1.0,
+          "rows": 111,
+          "unit": "network"
+        }
+      ],
+      "why": "A whip-round is forty people paying one collector and a payday is one employer paying forty. Both are the shape discovery links on, so this is the rung where a structural feature has to earn itself.",
+      "world": {
+        "accounts": 15601.0,
+        "events": 233109.0,
+        "fraud_accounts": 1022.0,
+        "fraud_share_of_personal": 0.08588235294117647,
+        "networks": 60.0,
+        "personal_accounts": 11900.0,
+        "terminals": 40.0
+      }
+    },
+    {
+      "key": "W3",
+      "seed": 20261006,
+      "title": "+ negatives with the same SHAPE",
+      "units": [
+        {
+          "average_precision": 0.9462512231635417,
+          "base_rate": 0.29550598124797933,
+          "coverage": 0.7772108843537415,
+          "positives": 914,
+          "recall_at_budget": 0.3366228070175439,
+          "roc_auc": 0.975388649740663,
+          "rows": 3093,
+          "unit": "account"
+        },
+        {
+          "average_precision": 0.9960208989495399,
+          "base_rate": 0.5272727272727272,
+          "coverage": 1.0,
+          "positives": 58,
+          "recall_at_budget": 0.17307692307692307,
+          "roc_auc": 0.9949392712550607,
+          "rows": 110,
+          "unit": "network"
+        }
+      ],
+      "why": "A whip-round is forty people paying one collector and a payday is one employer paying forty. Both are the shape discovery links on, so this is the rung where a structural feature has to earn itself.",
+      "world": {
+        "accounts": 15451.0,
+        "events": 234548.0,
+        "fraud_accounts": 1176.0,
+        "fraud_share_of_personal": 0.0987239758226998,
+        "networks": 60.0,
+        "personal_accounts": 11912.0,
+        "terminals": 40.0
+      }
+    },
+    {
+      "key": "W3",
+      "seed": 20261007,
+      "title": "+ negatives with the same SHAPE",
+      "units": [
+        {
+          "average_precision": 0.9842605343832044,
+          "base_rate": 0.34532374100719426,
+          "coverage": 0.757396449704142,
+          "positives": 1152,
+          "recall_at_budget": 0.28908296943231443,
+          "roc_auc": 0.9905234137604894,
+          "rows": 3336,
+          "unit": "account"
+        },
+        {
+          "average_precision": 1.0,
+          "base_rate": 0.5607476635514018,
+          "coverage": 1.0,
+          "positives": 60,
+          "recall_at_budget": 0.1702127659574468,
+          "roc_auc": 1.0,
+          "rows": 107,
+          "unit": "network"
+        }
+      ],
+      "why": "A whip-round is forty people paying one collector and a payday is one employer paying forty. Both are the shape discovery links on, so this is the rung where a structural feature has to earn itself.",
+      "world": {
+        "accounts": 15655.0,
+        "events": 242167.0,
+        "fraud_accounts": 1521.0,
+        "fraud_share_of_personal": 0.12420382165605096,
+        "networks": 60.0,
+        "personal_accounts": 12246.0,
+        "terminals": 40.0
+      }
+    },
+    {
+      "key": "W4",
+      "seed": 20261005,
+      "title": "+ a second fraud on a different clock",
+      "units": [
+        {
+          "average_precision": 0.924147168996721,
+          "base_rate": 0.24818959842001317,
+          "coverage": 0.7570281124497992,
+          "positives": 754,
+          "recall_at_budget": 0.4013333333333333,
+          "roc_auc": 0.9622578366445915,
+          "rows": 3038,
+          "unit": "account"
+        },
+        {
+          "average_precision": 0.9847434446982618,
+          "base_rate": 0.44696969696969696,
+          "coverage": 1.0,
+          "positives": 59,
+          "recall_at_budget": 0.22,
+          "roc_auc": 0.9836666666666666,
+          "rows": 132,
+          "unit": "network"
+        }
+      ],
+      "why": "Pyramids run over months beside rings running over minutes. One detector now has to hold two time scales at once, which is what the whole flow-based idea claims it can do.",
+      "world": {
+        "accounts": 21814.0,
+        "events": 190794.0,
+        "fraud_accounts": 996.0,
+        "fraud_share_of_personal": 0.05477643953143046,
+        "networks": 80.0,
+        "personal_accounts": 18183.0,
+        "terminals": 40.0
+      }
+    },
+    {
+      "key": "W4",
+      "seed": 20261006,
+      "title": "+ a second fraud on a different clock",
+      "units": [
+        {
+          "average_precision": 0.9365655942952221,
+          "base_rate": 0.21269177126917713,
+          "coverage": 0.7830551989730423,
+          "positives": 610,
+          "recall_at_budget": 0.46787479406919275,
+          "roc_auc": 0.9725208433630287,
+          "rows": 2868,
+          "unit": "account"
+        },
+        {
+          "average_precision": 0.9452633525951616,
+          "base_rate": 0.4253731343283582,
+          "coverage": 1.0,
+          "positives": 57,
+          "recall_at_budget": 0.22916666666666666,
+          "roc_auc": 0.9425403225806451,
+          "rows": 134,
+          "unit": "network"
+        }
+      ],
+      "why": "Pyramids run over months beside rings running over minutes. One detector now has to hold two time scales at once, which is what the whole flow-based idea claims it can do.",
+      "world": {
+        "accounts": 21002.0,
+        "events": 183248.0,
+        "fraud_accounts": 779.0,
+        "fraud_share_of_personal": 0.044430502481035763,
+        "networks": 80.0,
+        "personal_accounts": 17533.0,
+        "terminals": 40.0
+      }
+    },
+    {
+      "key": "W4",
+      "seed": 20261007,
+      "title": "+ a second fraud on a different clock",
+      "units": [
+        {
+          "average_precision": 0.9170892014505784,
+          "base_rate": 0.2665799739921977,
+          "coverage": 0.789980732177264,
+          "positives": 820,
+          "recall_at_budget": 0.3737745098039216,
+          "roc_auc": 0.9595870114459362,
+          "rows": 3076,
+          "unit": "account"
+        },
+        {
+          "average_precision": 0.9691242448946216,
+          "base_rate": 0.43703703703703706,
+          "coverage": 1.0,
+          "positives": 59,
+          "recall_at_budget": 0.22916666666666666,
+          "roc_auc": 0.9698383084577115,
+          "rows": 135,
+          "unit": "network"
+        }
+      ],
+      "why": "Pyramids run over months beside rings running over minutes. One detector now has to hold two time scales at once, which is what the whole flow-based idea claims it can do.",
+      "world": {
+        "accounts": 21825.0,
+        "events": 190930.0,
+        "fraud_accounts": 1038.0,
+        "fraud_share_of_personal": 0.056150600454397924,
+        "networks": 80.0,
+        "personal_accounts": 18486.0,
+        "terminals": 40.0
+      }
+    },
+    {
+      "key": "W5",
+      "seed": 20261005,
+      "title": "+ an organiser who is hiding",
+      "units": [
+        {
+          "average_precision": 0.933426230148011,
+          "base_rate": 0.2432975871313673,
+          "coverage": 0.7731629392971247,
+          "positives": 726,
+          "recall_at_budget": 0.40827586206896554,
+          "roc_auc": 0.9701377767492094,
+          "rows": 2984,
+          "unit": "account"
+        },
+        {
+          "average_precision": null,
+          "base_rate": 0.0,
+          "coverage": 0.0,
+          "positives": 0,
+          "recall_at_budget": null,
+          "roc_auc": null,
+          "rows": 157,
+          "unit": "network"
+        }
+      ],
+      "why": "The same world with the evasion knobs up: money arrives from several independent funders and leaves through several terminals. This rung says what evasion costs \u2014 and who pays, the model or the unit of analysis.",
+      "world": {
+        "accounts": 21896.0,
+        "events": 190239.0,
+        "fraud_accounts": 939.0,
+        "fraud_share_of_personal": 0.05226829947119399,
+        "networks": 80.0,
+        "personal_accounts": 17965.0,
+        "terminals": 40.0
+      }
+    },
+    {
+      "key": "W5",
+      "seed": 20261006,
+      "title": "+ an organiser who is hiding",
+      "units": [
+        {
+          "average_precision": 0.9221522261395321,
+          "base_rate": 0.2775457757789913,
+          "coverage": 0.7707404103479036,
+          "positives": 864,
+          "recall_at_budget": 0.35805330243337197,
+          "roc_auc": 0.9578068797508299,
+          "rows": 3113,
+          "unit": "account"
+        },
+        {
+          "average_precision": null,
+          "base_rate": 0.0,
+          "coverage": 0.0,
+          "positives": 0,
+          "recall_at_budget": null,
+          "roc_auc": null,
+          "rows": 156,
+          "unit": "network"
+        }
+      ],
+      "why": "The same world with the evasion knobs up: money arrives from several independent funders and leaves through several terminals. This rung says what evasion costs \u2014 and who pays, the model or the unit of analysis.",
+      "world": {
+        "accounts": 21747.0,
+        "events": 191943.0,
+        "fraud_accounts": 1121.0,
+        "fraud_share_of_personal": 0.062353988207809546,
+        "networks": 80.0,
+        "personal_accounts": 17978.0,
+        "terminals": 40.0
+      }
+    },
+    {
+      "key": "W5",
+      "seed": 20261007,
+      "title": "+ an organiser who is hiding",
+      "units": [
+        {
+          "average_precision": 0.928568359097762,
+          "base_rate": 0.27090732967387793,
+          "coverage": 0.764813126709207,
+          "positives": 839,
+          "recall_at_budget": 0.36678614097968937,
+          "roc_auc": 0.9659447492694344,
+          "rows": 3097,
+          "unit": "account"
+        },
+        {
+          "average_precision": null,
+          "base_rate": 0.0,
+          "coverage": 0.0,
+          "positives": 0,
+          "recall_at_budget": null,
+          "roc_auc": null,
+          "rows": 162,
+          "unit": "network"
+        }
+      ],
+      "why": "The same world with the evasion knobs up: money arrives from several independent funders and leaves through several terminals. This rung says what evasion costs \u2014 and who pays, the model or the unit of analysis.",
+      "world": {
+        "accounts": 22112.0,
+        "events": 192212.0,
+        "fraud_accounts": 1097.0,
+        "fraud_share_of_personal": 0.059383965787906674,
+        "networks": 80.0,
+        "personal_accounts": 18473.0,
+        "terminals": 40.0
+      }
+    }
+  ],
+  "run_id": "1c9a1ce1",
+  "seeds": [
+    20261005,
+    20261006,
+    20261007
+  ]
+}

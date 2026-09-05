@@ -1,0 +1,567 @@
+{
+  "detector": "forest-v1",
+  "generated_at": "2026-09-05T18:00:44+00:00",
+  "results": [
+    {
+      "key": "W1",
+      "seed": 20261005,
+      "title": "the schema alone",
+      "units": [
+        {
+          "average_precision": 1.0,
+          "base_rate": 0.9616279069767442,
+          "coverage": 0.7685873605947955,
+          "positives": 827,
+          "recall_at_budget": 0.10206561360874848,
+          "roc_auc": 1.0,
+          "rows": 860,
+          "unit": "account"
+        },
+        {
+          "average_precision": null,
+          "base_rate": 1.0,
+          "coverage": 1.0,
+          "positives": 46,
+          "recall_at_budget": null,
+          "roc_auc": null,
+          "rows": 46,
+          "unit": "network"
+        }
+      ],
+      "why": "A check on the instrument. The signal is known to be there, so a detector that misses it here is broken rather than challenged.",
+      "world": {
+        "accounts": 1302.0,
+        "events": 27476.0,
+        "fraud_accounts": 1076.0,
+        "fraud_share_of_personal": 1.0,
+        "networks": 60.0,
+        "personal_accounts": 1076.0,
+        "terminals": 40.0
+      }
+    },
+    {
+      "key": "W1",
+      "seed": 20261006,
+      "title": "the schema alone",
+      "units": [
+        {
+          "average_precision": 1.0,
+          "base_rate": 0.961499493414387,
+          "coverage": 0.7519809825673535,
+          "positives": 949,
+          "recall_at_budget": 0.10180275715800637,
+          "roc_auc": 1.0,
+          "rows": 987,
+          "unit": "account"
+        },
+        {
+          "average_precision": null,
+          "base_rate": 1.0,
+          "coverage": 1.0,
+          "positives": 50,
+          "recall_at_budget": null,
+          "roc_auc": null,
+          "rows": 50,
+          "unit": "network"
+        }
+      ],
+      "why": "A check on the instrument. The signal is known to be there, so a detector that misses it here is broken rather than challenged.",
+      "world": {
+        "accounts": 1488.0,
+        "events": 32329.0,
+        "fraud_accounts": 1262.0,
+        "fraud_share_of_personal": 1.0,
+        "networks": 60.0,
+        "personal_accounts": 1262.0,
+        "terminals": 40.0
+      }
+    },
+    {
+      "key": "W1",
+      "seed": 20261007,
+      "title": "the schema alone",
+      "units": [
+        {
+          "average_precision": 1.0,
+          "base_rate": 0.9650900900900901,
+          "coverage": 0.761101243339254,
+          "positives": 857,
+          "recall_at_budget": 0.10141509433962265,
+          "roc_auc": 1.0,
+          "rows": 888,
+          "unit": "account"
+        },
+        {
+          "average_precision": null,
+          "base_rate": 1.0,
+          "coverage": 1.0,
+          "positives": 48,
+          "recall_at_budget": null,
+          "roc_auc": null,
+          "rows": 48,
+          "unit": "network"
+        }
+      ],
+      "why": "A check on the instrument. The signal is known to be there, so a detector that misses it here is broken rather than challenged.",
+      "world": {
+        "accounts": 1352.0,
+        "events": 28852.0,
+        "fraud_accounts": 1126.0,
+        "fraud_share_of_personal": 1.0,
+        "networks": 60.0,
+        "personal_accounts": 1126.0,
+        "terminals": 40.0
+      }
+    },
+    {
+      "key": "W2",
+      "seed": 20261005,
+      "title": "+ people who also empty their account",
+      "units": [
+        {
+          "average_precision": 0.9972861152220934,
+          "base_rate": 0.7091222030981067,
+          "coverage": 0.7396768402154399,
+          "positives": 824,
+          "recall_at_budget": 0.13953488372093023,
+          "roc_auc": 0.9931543705545093,
+          "rows": 1162,
+          "unit": "account"
+        },
+        {
+          "average_precision": null,
+          "base_rate": 1.0,
+          "coverage": 1.0,
+          "positives": 53,
+          "recall_at_budget": null,
+          "roc_auc": null,
+          "rows": 53,
+          "unit": "network"
+        }
+      ],
+      "why": "The first hard negative, and it shares the behaviour the exit is recognised by. Separating a mule from a fast spender is the whole task; separating one from a salary is not.",
+      "world": {
+        "accounts": 1740.0,
+        "events": 34253.0,
+        "fraud_accounts": 1114.0,
+        "fraud_share_of_personal": 0.7357992073976222,
+        "networks": 60.0,
+        "personal_accounts": 1514.0,
+        "terminals": 40.0
+      }
+    },
+    {
+      "key": "W2",
+      "seed": 20261006,
+      "title": "+ people who also empty their account",
+      "units": [
+        {
+          "average_precision": 0.9997090841736681,
+          "base_rate": 0.7452093683463449,
+          "coverage": 0.7743362831858407,
+          "positives": 1050,
+          "recall_at_budget": 0.13256484149855907,
+          "roc_auc": 0.9991454996313921,
+          "rows": 1409,
+          "unit": "account"
+        },
+        {
+          "average_precision": null,
+          "base_rate": 1.0,
+          "coverage": 0.9166666666666666,
+          "positives": 43,
+          "recall_at_budget": null,
+          "roc_auc": null,
+          "rows": 43,
+          "unit": "network"
+        }
+      ],
+      "why": "The first hard negative, and it shares the behaviour the exit is recognised by. Separating a mule from a fast spender is the whole task; separating one from a salary is not.",
+      "world": {
+        "accounts": 1982.0,
+        "events": 42336.0,
+        "fraud_accounts": 1356.0,
+        "fraud_share_of_personal": 0.7722095671981777,
+        "networks": 60.0,
+        "personal_accounts": 1756.0,
+        "terminals": 40.0
+      }
+    },
+    {
+      "key": "W2",
+      "seed": 20261007,
+      "title": "+ people who also empty their account",
+      "units": [
+        {
+          "average_precision": 0.994496470428162,
+          "base_rate": 0.6931124673060157,
+          "coverage": 0.7733463035019456,
+          "positives": 795,
+          "recall_at_budget": 0.14249363867684478,
+          "roc_auc": 0.9871760228782455,
+          "rows": 1147,
+          "unit": "account"
+        },
+        {
+          "average_precision": null,
+          "base_rate": 1.0,
+          "coverage": 0.9833333333333333,
+          "positives": 47,
+          "recall_at_budget": null,
+          "roc_auc": null,
+          "rows": 47,
+          "unit": "network"
+        }
+      ],
+      "why": "The first hard negative, and it shares the behaviour the exit is recognised by. Separating a mule from a fast spender is the whole task; separating one from a salary is not.",
+      "world": {
+        "accounts": 1654.0,
+        "events": 32730.0,
+        "fraud_accounts": 1028.0,
+        "fraud_share_of_personal": 0.7198879551820728,
+        "networks": 60.0,
+        "personal_accounts": 1428.0,
+        "terminals": 40.0
+      }
+    },
+    {
+      "key": "W3",
+      "seed": 20261005,
+      "title": "+ honest fan-in and fan-out",
+      "units": [
+        {
+          "average_precision": 0.9949056829815384,
+          "base_rate": 0.6016755521706016,
+          "coverage": 0.7574304889741131,
+          "positives": 790,
+          "recall_at_budget": 0.1643312101910828,
+          "roc_auc": 0.9914107334300308,
+          "rows": 1313,
+          "unit": "account"
+        },
+        {
+          "average_precision": null,
+          "base_rate": 0.9827586206896551,
+          "coverage": 1.0,
+          "positives": 57,
+          "recall_at_budget": null,
+          "roc_auc": null,
+          "rows": 58,
+          "unit": "network"
+        }
+      ],
+      "why": "A whip-round is forty people paying one collector and a payday is one employer paying forty. Both are the shape discovery links on, so this is where a structural feature has to earn its place.",
+      "world": {
+        "accounts": 5976.0,
+        "events": 41105.0,
+        "fraud_accounts": 1043.0,
+        "fraud_share_of_personal": 0.1821515892420538,
+        "networks": 60.0,
+        "personal_accounts": 5726.0,
+        "terminals": 40.0
+      }
+    },
+    {
+      "key": "W3",
+      "seed": 20261006,
+      "title": "+ honest fan-in and fan-out",
+      "units": [
+        {
+          "average_precision": 0.9996301771090994,
+          "base_rate": 0.5438898450946644,
+          "coverage": 0.7989886219974716,
+          "positives": 632,
+          "recall_at_budget": 0.1824,
+          "roc_auc": 0.9995557281553398,
+          "rows": 1162,
+          "unit": "account"
+        },
+        {
+          "average_precision": null,
+          "base_rate": 0.9807692307692307,
+          "coverage": 1.0,
+          "positives": 51,
+          "recall_at_budget": null,
+          "roc_auc": null,
+          "rows": 52,
+          "unit": "network"
+        }
+      ],
+      "why": "A whip-round is forty people paying one collector and a payday is one employer paying forty. Both are the shape discovery links on, so this is where a structural feature has to earn its place.",
+      "world": {
+        "accounts": 5551.0,
+        "events": 35237.0,
+        "fraud_accounts": 791.0,
+        "fraud_share_of_personal": 0.1492171288436144,
+        "networks": 60.0,
+        "personal_accounts": 5301.0,
+        "terminals": 40.0
+      }
+    },
+    {
+      "key": "W3",
+      "seed": 20261007,
+      "title": "+ honest fan-in and fan-out",
+      "units": [
+        {
+          "average_precision": 0.9953846937520198,
+          "base_rate": 0.5737439222042139,
+          "coverage": 0.7955056179775281,
+          "positives": 708,
+          "recall_at_budget": 0.171875,
+          "roc_auc": 0.9933637261947539,
+          "rows": 1234,
+          "unit": "account"
+        },
+        {
+          "average_precision": null,
+          "base_rate": 1.0,
+          "coverage": 1.0,
+          "positives": 46,
+          "recall_at_budget": null,
+          "roc_auc": null,
+          "rows": 46,
+          "unit": "network"
+        }
+      ],
+      "why": "A whip-round is forty people paying one collector and a payday is one employer paying forty. Both are the shape discovery links on, so this is where a structural feature has to earn its place.",
+      "world": {
+        "accounts": 5796.0,
+        "events": 38095.0,
+        "fraud_accounts": 890.0,
+        "fraud_share_of_personal": 0.16047601875225387,
+        "networks": 60.0,
+        "personal_accounts": 5546.0,
+        "terminals": 40.0
+      }
+    },
+    {
+      "key": "W4",
+      "seed": 20261005,
+      "title": "+ the whole population",
+      "units": [
+        {
+          "average_precision": 0.948794570647679,
+          "base_rate": 0.28055465978716543,
+          "coverage": 0.7678729037952339,
+          "positives": 870,
+          "recall_at_budget": 0.3552479815455594,
+          "roc_auc": 0.971972005622642,
+          "rows": 3101,
+          "unit": "account"
+        },
+        {
+          "average_precision": 0.9864097051597052,
+          "base_rate": 0.5,
+          "coverage": 0.95,
+          "positives": 41,
+          "recall_at_budget": 0.1875,
+          "roc_auc": 0.9799107142857142,
+          "rows": 82,
+          "unit": "network"
+        }
+      ],
+      "why": "Ordinary life at full volume: salaries, freelancers, traders, families, and pyramids running on a scale of months beside mule networks running on a scale of minutes.",
+      "world": {
+        "accounts": 17674.0,
+        "events": 187603.0,
+        "fraud_accounts": 1133.0,
+        "fraud_share_of_personal": 0.0770224337185588,
+        "networks": 80.0,
+        "personal_accounts": 14710.0,
+        "terminals": 80.0
+      }
+    },
+    {
+      "key": "W4",
+      "seed": 20261006,
+      "title": "+ the whole population",
+      "units": [
+        {
+          "average_precision": 0.9395102969090102,
+          "base_rate": 0.23440784863349684,
+          "coverage": 0.7761020881670534,
+          "positives": 669,
+          "recall_at_budget": 0.42492492492492495,
+          "roc_auc": 0.9704091799747991,
+          "rows": 2854,
+          "unit": "account"
+        },
+        {
+          "average_precision": 0.9575657894736842,
+          "base_rate": 0.35294117647058826,
+          "coverage": 0.4666666666666667,
+          "positives": 24,
+          "recall_at_budget": 0.21052631578947367,
+          "roc_auc": 0.9493927125506072,
+          "rows": 68,
+          "unit": "network"
+        }
+      ],
+      "why": "Ordinary life at full volume: salaries, freelancers, traders, families, and pyramids running on a scale of months beside mule networks running on a scale of minutes.",
+      "world": {
+        "accounts": 17452.0,
+        "events": 179152.0,
+        "fraud_accounts": 862.0,
+        "fraud_share_of_personal": 0.05906536932986159,
+        "networks": 80.0,
+        "personal_accounts": 14594.0,
+        "terminals": 80.0
+      }
+    },
+    {
+      "key": "W4",
+      "seed": 20261007,
+      "title": "+ the whole population",
+      "units": [
+        {
+          "average_precision": 0.9545497813663688,
+          "base_rate": 0.31882242405261507,
+          "coverage": 0.8034727703235991,
+          "positives": 1018,
+          "recall_at_budget": 0.3126232741617357,
+          "roc_auc": 0.9728021520603938,
+          "rows": 3193,
+          "unit": "account"
+        },
+        {
+          "average_precision": 0.9918876262626262,
+          "base_rate": 0.5045871559633027,
+          "coverage": 0.9166666666666666,
+          "positives": 55,
+          "recall_at_budget": 0.18181818181818182,
+          "roc_auc": 0.9878048780487805,
+          "rows": 109,
+          "unit": "network"
+        }
+      ],
+      "why": "Ordinary life at full volume: salaries, freelancers, traders, families, and pyramids running on a scale of months beside mule networks running on a scale of minutes.",
+      "world": {
+        "accounts": 17603.0,
+        "events": 189847.0,
+        "fraud_accounts": 1267.0,
+        "fraud_share_of_personal": 0.08499362715502784,
+        "networks": 80.0,
+        "personal_accounts": 14907.0,
+        "terminals": 80.0
+      }
+    },
+    {
+      "key": "W5",
+      "seed": 20261005,
+      "title": "+ an organiser who is hiding",
+      "units": [
+        {
+          "average_precision": 0.9497294992826099,
+          "base_rate": 0.2941552219738103,
+          "coverage": 0.7518367346938776,
+          "positives": 921,
+          "recall_at_budget": 0.3395196506550218,
+          "roc_auc": 0.97206703076672,
+          "rows": 3131,
+          "unit": "account"
+        },
+        {
+          "average_precision": null,
+          "base_rate": 0.0,
+          "coverage": 0.0,
+          "positives": 0,
+          "recall_at_budget": null,
+          "roc_auc": null,
+          "rows": 80,
+          "unit": "network"
+        }
+      ],
+      "why": "The same world with the evasion knobs turned up: money arrives from several independent funders and leaves through several terminals. This is the rung that says what evasion costs.",
+      "world": {
+        "accounts": 18038.0,
+        "events": 189876.0,
+        "fraud_accounts": 1225.0,
+        "fraud_share_of_personal": 0.08291593339650738,
+        "networks": 80.0,
+        "personal_accounts": 14774.0,
+        "terminals": 80.0
+      }
+    },
+    {
+      "key": "W5",
+      "seed": 20261006,
+      "title": "+ an organiser who is hiding",
+      "units": [
+        {
+          "average_precision": 0.9437578626690473,
+          "base_rate": 0.28557344725599737,
+          "coverage": 0.7576285963382737,
+          "positives": 869,
+          "recall_at_budget": 0.34757505773672054,
+          "roc_auc": 0.9698490482286568,
+          "rows": 3043,
+          "unit": "account"
+        },
+        {
+          "average_precision": null,
+          "base_rate": 0.014285714285714285,
+          "coverage": 0.016666666666666666,
+          "positives": 1,
+          "recall_at_budget": null,
+          "roc_auc": null,
+          "rows": 70,
+          "unit": "network"
+        }
+      ],
+      "why": "The same world with the evasion knobs turned up: money arrives from several independent funders and leaves through several terminals. This is the rung that says what evasion costs.",
+      "world": {
+        "accounts": 17830.0,
+        "events": 185831.0,
+        "fraud_accounts": 1147.0,
+        "fraud_share_of_personal": 0.07817611777535442,
+        "networks": 80.0,
+        "personal_accounts": 14672.0,
+        "terminals": 80.0
+      }
+    },
+    {
+      "key": "W5",
+      "seed": 20261007,
+      "title": "+ an organiser who is hiding",
+      "units": [
+        {
+          "average_precision": 0.9558094981885759,
+          "base_rate": 0.2673434856175973,
+          "coverage": 0.7610789980732178,
+          "positives": 790,
+          "recall_at_budget": 0.37420178799489145,
+          "roc_auc": 0.9778770646688222,
+          "rows": 2955,
+          "unit": "account"
+        },
+        {
+          "average_precision": null,
+          "base_rate": 0.0,
+          "coverage": 0.0,
+          "positives": 0,
+          "recall_at_budget": null,
+          "roc_auc": null,
+          "rows": 88,
+          "unit": "network"
+        }
+      ],
+      "why": "The same world with the evasion knobs turned up: money arrives from several independent funders and leaves through several terminals. This is the rung that says what evasion costs.",
+      "world": {
+        "accounts": 17611.0,
+        "events": 182774.0,
+        "fraud_accounts": 1038.0,
+        "fraud_share_of_personal": 0.07102292165583304,
+        "networks": 80.0,
+        "personal_accounts": 14615.0,
+        "terminals": 80.0
+      }
+    }
+  ],
+  "run_id": "59596db8",
+  "seeds": [
+    20261005,
+    20261006,
+    20261007
+  ]
+}
