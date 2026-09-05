@@ -48,6 +48,8 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
+import networkx as nx
+
 from apris.cheops.domain.models import TransactionEvent
 from apris.cheops.infrastructure.simulation.config import ASSET_CASH
 from apris.cheops.infrastructure.simulation.generator import SimulatedWorld
@@ -74,6 +76,20 @@ DEFAULT_HUB_DEGREE_CAP = 120
 # it is distributing. Expansion stops there so one shop cannot join every
 # customer to every other.
 DEFAULT_RELAY_FAN_CAP = 25
+
+# A link resting on one weak coincidence is dropped unless it recurs or is
+# corroborated by a second kind of shared resource.
+DEFAULT_MIN_LINK_WEIGHT = 2.0
+DEFAULT_MIN_LINK_REASONS = 2
+
+# Louvain resolution. Measured across 0.8 to 1.4 on the full world: the
+# candidate set, the base rate, coverage and the honest size distribution are
+# byte-identical at every value. Corroboration does the separating; community
+# detection is a safety net for the case where pruning leaves a bridge.
+#
+# Left at the neutral 1.0 because a higher value shatters small graphs — at
+# 1.4 a complete graph of four nodes came apart into four singletons.
+DEFAULT_RESOLUTION = 1.0
 
 
 @dataclass(frozen=True)
@@ -110,40 +126,65 @@ class DiscoveryReport:
 
 
 # ==========================================================================
-# Union-find over accounts
+# Weighted link graph
 # ==========================================================================
 
 
-class _Union:
+class _LinkGraph:
+    """Accounts joined by shared resources, with corroboration counted.
+
+    Union-find was used here first and it cannot work. It is transitive: one
+    coincidental link merges two clusters permanently, and there is no way to
+    un-merge them later. Measured consequence — a single component of 4 531
+    accounts formed, holding every salary earner, 210 mules and 203 fast
+    spenders, and was then discarded whole for exceeding the size cap. The
+    confusable populations were being deleted, not classified.
+
+    Here every link adds weight to an edge instead. One shared resource is a
+    coincidence; several independent ones are a signal. Communities are then
+    extracted by modularity, which will not merge two dense clusters joined
+    by a single thin edge.
+    """
+
     def __init__(self) -> None:
-        self.parent: dict[str, str] = {}
-        self.reasons: dict[str, set[str]] = defaultdict(set)
+        self.graph = nx.Graph()
 
-    def add(self, item: str) -> None:
-        self.parent.setdefault(item, item)
-
-    def find(self, item: str) -> str:
-        self.add(item)
-        root = item
-        while self.parent[root] != root:
-            root = self.parent[root]
-        while self.parent[item] != root:
-            self.parent[item], item = root, self.parent[item]
-        return root
-
-    def union(self, left: str, right: str, reason: str) -> None:
-        a, b = self.find(left), self.find(right)
-        self.reasons[a].add(reason)
-        if a == b:
+    def link(self, left: str, right: str, reason: str) -> None:
+        if left == right:
             return
-        self.parent[b] = a
-        self.reasons[a] |= self.reasons.pop(b, set())
+        if self.graph.has_edge(left, right):
+            data = self.graph[left][right]
+            data["weight"] += 1.0
+            data["reasons"].add(reason)
+        else:
+            self.graph.add_edge(left, right, weight=1.0, reasons={reason})
 
-    def groups(self) -> dict[str, list[str]]:
-        out: dict[str, list[str]] = defaultdict(list)
-        for item in self.parent:
-            out[self.find(item)].append(item)
-        return out
+    def prune(self, min_weight: float, min_reasons: int) -> None:
+        """Drop links that rest on a single thin coincidence."""
+        weak = [
+            (a, b)
+            for a, b, data in self.graph.edges(data=True)
+            if data["weight"] < min_weight and len(data["reasons"]) < min_reasons
+        ]
+        self.graph.remove_edges_from(weak)
+        self.graph.remove_nodes_from(list(nx.isolates(self.graph)))
+
+    def communities(self, resolution: float, seed: int) -> list[set[str]]:
+        if self.graph.number_of_nodes() == 0:
+            return []
+        return [
+            set(group)
+            for group in nx.community.louvain_communities(
+                self.graph, weight="weight", resolution=resolution, seed=seed
+            )
+        ]
+
+    def reasons_within(self, members: set[str]) -> set[str]:
+        found: set[str] = set()
+        for a, b, data in self.graph.edges(data=True):
+            if a in members and b in members:
+                found |= data["reasons"]
+        return found
 
 
 # ==========================================================================
@@ -152,7 +193,7 @@ class _Union:
 
 
 def _link_shared_terminal(
-    events: list[TransactionEvent], union: _Union, window: timedelta
+    events: list[TransactionEvent], union: _LinkGraph, window: timedelta
 ) -> None:
     """Accounts that cashed out at the same terminal within one window."""
     by_terminal: dict[str, list[TransactionEvent]] = defaultdict(list)
@@ -168,7 +209,7 @@ def _link_shared_terminal(
                 left += 1
             for middle in range(left, right):
                 if withdrawals[middle].sender_id != withdrawals[right].sender_id:
-                    union.union(
+                    union.link(
                         withdrawals[middle].sender_id,
                         withdrawals[right].sender_id,
                         "shared_terminal",
@@ -177,7 +218,7 @@ def _link_shared_terminal(
 
 def _link_common_ancestor(
     events: list[TransactionEvent],
-    union: _Union,
+    union: _LinkGraph,
     hops: int,
     window: timedelta,
     relay_fan_cap: int,
@@ -241,12 +282,12 @@ def _link_common_ancestor(
                 left += 1
             for middle in range(left, right):
                 if ordered[middle][0] != ordered[right][0]:
-                    union.union(ordered[middle][0], ordered[right][0], "common_ancestor")
+                    union.link(ordered[middle][0], ordered[right][0], "common_ancestor")
 
 
 def _link_common_receiver(
     events: list[TransactionEvent],
-    union: _Union,
+    union: _LinkGraph,
     window: timedelta,
     hub_degree_cap: int,
 ) -> None:
@@ -277,7 +318,7 @@ def _link_common_receiver(
                 left += 1
             for middle in range(left, right):
                 if arrivals[middle].sender_id != arrivals[right].sender_id:
-                    union.union(
+                    union.link(
                         arrivals[middle].sender_id,
                         arrivals[right].sender_id,
                         "common_receiver",
@@ -298,6 +339,10 @@ def discover_candidates(
     max_size: int = MAX_CANDIDATE_SIZE,
     hub_degree_cap: int = DEFAULT_HUB_DEGREE_CAP,
     relay_fan_cap: int = DEFAULT_RELAY_FAN_CAP,
+    min_link_weight: float = DEFAULT_MIN_LINK_WEIGHT,
+    min_link_reasons: int = DEFAULT_MIN_LINK_REASONS,
+    resolution: float = DEFAULT_RESOLUTION,
+    seed: int = 42,
 ) -> list[Candidate]:
     """Propose candidate clusters from events alone.
 
@@ -305,11 +350,15 @@ def discover_candidates(
     from the world is its event stream.
     """
     events = list(world.events)
-    union = _Union()
+    links = _LinkGraph()
 
-    _link_shared_terminal(events, union, terminal_window)
-    _link_common_ancestor(events, union, ancestor_hops, terminal_window, relay_fan_cap)
-    _link_common_receiver(events, union, terminal_window, hub_degree_cap)
+    _link_shared_terminal(events, links, terminal_window)
+    _link_common_ancestor(events, links, ancestor_hops, terminal_window, relay_fan_cap)
+    _link_common_receiver(events, links, terminal_window, hub_degree_cap)
+
+    # Corroboration before clustering: a pair joined once, by one kind of
+    # resource, is a coincidence and must not fuse two structures.
+    links.prune(min_link_weight, min_link_reasons)
 
     by_account: dict[str, list[TransactionEvent]] = defaultdict(list)
     for event in events:
@@ -317,7 +366,7 @@ def discover_candidates(
         by_account[event.receiver_id].append(event)
 
     candidates: list[Candidate] = []
-    for index, (root, members) in enumerate(sorted(union.groups().items())):
+    for index, members in enumerate(links.communities(resolution, seed)):
         if not (min_size <= len(members) <= max_size):
             continue
         collected: dict[str, TransactionEvent] = {}
@@ -331,7 +380,7 @@ def discover_candidates(
                 candidate_id=f"CAND{index:05d}",
                 member_ids=tuple(sorted(members)),
                 events=tuple(sorted(collected.values(), key=lambda e: e.ts)),
-                link_reasons=tuple(sorted(union.reasons.get(root, set()))),
+                link_reasons=tuple(sorted(links.reasons_within(members))),
             )
         )
     return candidates

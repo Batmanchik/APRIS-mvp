@@ -99,7 +99,11 @@ def test_shared_terminal_links_accounts():
         _event("A", "ATM1", 3, cash=True),
         _event("B", "ATM1", 5, cash=True),
     ]
-    candidates = discover_candidates(_FakeWorld(events), min_size=2)
+    # Pruning off: this test is about the link itself, not about the
+    # corroboration policy, which has its own test below.
+    candidates = discover_candidates(
+        _FakeWorld(events), min_size=2, min_link_weight=1, min_link_reasons=1
+    )
     assert candidates
     members = set(candidates[0].member_ids)
     assert {"A", "B"} <= members
@@ -118,7 +122,9 @@ def test_common_ancestor_links_accounts_without_a_direct_edge():
         _event("F1", "M1", 2),
         _event("F2", "M2", 3),
     ]
-    candidates = discover_candidates(_FakeWorld(events), min_size=2)
+    candidates = discover_candidates(
+        _FakeWorld(events), min_size=2, min_link_weight=1, min_link_reasons=1
+    )
     assert candidates
     members = set(candidates[0].member_ids)
     assert {"M1", "M2"} <= members
@@ -134,7 +140,8 @@ def test_accounts_far_apart_in_time_are_not_linked():
         _event("B", "ATM1", 10_002, cash=True),
     ]
     candidates = discover_candidates(
-        _FakeWorld(events), min_size=2, terminal_window=timedelta(minutes=30)
+        _FakeWorld(events), min_size=2, terminal_window=timedelta(minutes=30),
+        min_link_weight=1, min_link_reasons=1,
     )
     for candidate in candidates:
         members = set(candidate.member_ids)
@@ -184,3 +191,41 @@ def test_both_classes_are_present(world):
     labels, _ = label_candidates(world, candidates)
     assert 0 in labels, "discovery proposed no honest candidates"
     assert 1 in labels, "discovery proposed no fraudulent candidates"
+
+
+def test_a_single_coincidence_does_not_fuse_two_structures():
+    """Corroboration before clustering.
+
+    Union-find was used here first and could not work: it is transitive, so
+    one coincidental link merged two clusters permanently and there was no
+    way back. A single component of 4 531 accounts formed and was discarded
+    whole, taking every salary earner and 210 mules with it.
+
+    One shared resource is a coincidence. Several independent ones are a
+    signal. This test pins the difference.
+    """
+    # Two tight rings, joined by exactly one thin coincidence: X and Y once
+    # paid the same person.
+    events = []
+    for i in range(4):
+        events += [_event("SRC1", f"A{i}", i), _event(f"A{i}", "ATM1", 5 + i, cash=True)]
+    for i in range(4):
+        events += [_event("SRC2", f"B{i}", 100 + i),
+                   _event(f"B{i}", "ATM2", 105 + i, cash=True)]
+    events += [_event("A0", "BRIDGE", 50), _event("B0", "BRIDGE", 51)]
+
+    candidates = discover_candidates(_FakeWorld(events), min_size=2)
+    merged = [c for c in candidates
+              if {"A0", "B0"} <= set(c.member_ids)]
+    assert not merged, "one coincidence must not fuse two separate structures"
+
+
+def test_repeated_links_survive_pruning():
+    """A pair joined again and again is not a coincidence."""
+    events = []
+    for i in range(5):
+        events += [_event("SRC", "A", i * 2), _event("SRC", "B", i * 2 + 1),
+                   _event("A", "ATM1", i * 2 + 3, cash=True),
+                   _event("B", "ATM1", i * 2 + 4, cash=True)]
+    candidates = discover_candidates(_FakeWorld(events), min_size=2)
+    assert any({"A", "B"} <= set(c.member_ids) for c in candidates)

@@ -256,11 +256,52 @@ all.
 The ladder turning non-monotonic is the informative part: the score separates
 but does not order, which a single AUC would have hidden.
 
-**Still open.** Salary earners remain absent from the candidate set even
-after the blob was dissolved, so payrolls — the honest structure that most
-resembles a ring's fan-out — are still not represented. Until they are, 0.9886
-is a ceiling measured against an incomplete set of negatives, and it should
-be quoted with that caveat attached.
+### Union-find was the wrong structure, and that was the last cause
+
+The blob survived every parameter fix because the clustering primitive itself
+was wrong. Union-find is transitive: one coincidental link merges two
+clusters permanently and nothing can un-merge them. A single component of
+4 531 accounts still formed, holding every salary earner, 210 mules and 203
+fast spenders, and was discarded whole for exceeding the size cap.
+
+Replaced by a **weighted link graph with corroboration**: every shared
+resource adds weight to an edge, links resting on one thin coincidence are
+pruned, and communities are extracted by modularity rather than by transitive
+closure. One shared resource is a coincidence; several independent ones are a
+signal.
+
+| | union-find | weighted + corroboration |
+|---|---|---|
+| candidates | 714 | 225 |
+| base rate | 0.132 | 0.489 |
+| **coverage** | 0.864 | **1.000** |
+| salary earners in candidates | 0 | **371** |
+| honest size, min/median/max | 3/3/104 | **3/8/84** |
+
+Coverage reaching 1.000 means the 15 networks previously lost were inside the
+discarded blob. Payrolls — the honest structure that most resembles a ring's
+fan-out — are finally represented.
+
+**Corroboration does the separating, not the community detection.** Measured
+across Louvain resolutions 0.8 to 1.4 on the full world: candidate set, base
+rate, coverage and size distribution are byte-identical at every value. The
+resolution is left neutral, and modularity remains only as a safety net for a
+bridge that pruning misses.
+
+### What the remaining ROC-AUC of 1.0000 actually means
+
+With discovery clean, coverage complete and both classes comparable in size,
+classification still separates perfectly. That is no longer a discovery
+artefact — it is a property of the simulator.
+
+**Our mules do exactly one thing:** receive money and cash it out. Real mules
+are real people who also draw a salary, buy groceries, and sometimes do not
+cash out at all. A ring made only of single-purpose accounts is structurally
+unambiguous, so a perfect score here measures how clean our fraud is, not how
+good the detector is.
+
+The next modelling step is therefore to give mules ordinary lives. Until then
+no classification figure from this simulator may be quoted as a capability.
 
 
 ---
