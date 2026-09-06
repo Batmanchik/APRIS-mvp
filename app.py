@@ -1,5 +1,5 @@
 """
-Cheops AI - Система интеллектуального анализа мультиканальных рисков.
+Vertex — аналитика графов и потоков для выявления финансового мошенничества.
 
 Главная точка входа Streamlit. Основная логика находится в pages/.
 Этот модуль применяет общие стили и отображает стартовый экран.
@@ -84,7 +84,7 @@ def _apply_matplotlib_theme() -> None:
 
 def main() -> None:
     st.set_page_config(
-        page_title="Cheops AI - Интеллектуальный скрининг рисков",
+        page_title="Vertex — аналитика графов и потоков",
         layout="wide",
         initial_sidebar_state="expanded",
     )
