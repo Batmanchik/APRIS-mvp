@@ -147,6 +147,13 @@ python scripts/run_demo.py                  # quick world
 python scripts/run_demo.py --preset full    # the world the audit was measured on
 ```
 
+Then open **http://127.0.0.1:8501** and go to **Витрина Vertex** — the showcase
+page. Seven tabs: the five topologies as graphs drawn from events, the crypto
+channel, the five worlds, rarity with a slider that re-prices the measured ROC
+curve, the evasion curve, the analyst queue, and buttons that launch the real
+runs. That page is the demo; everything else in the interface is the machinery
+behind it.
+
 It builds the analyst queue, starts the API, waits for its health check
 rather than sleeping, starts Streamlit, waits for that, and prints the URL.
 Ctrl+C stops both. The health checks are the same ones `docker-compose.yml`
