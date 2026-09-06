@@ -1,0 +1,671 @@
+{
+  "detector": "forest-v1",
+  "generated_at": "2026-09-06T06:52:22+00:00",
+  "honest_scale": 6,
+  "measured": [
+    {
+      "achieved_prevalence": 0.00998019801980198,
+      "average_precision": 0.4709600997669945,
+      "average_precision_lift": 47.49161646050372,
+      "operating_points": [
+        {
+          "alert_rate": 0.02903609678698929,
+          "alerts_per_1000_accounts": 29.03609678698929,
+          "precision": 0.1748633879781421,
+          "prevalence": 0.009916699722332408,
+          "recall": 0.512,
+          "reviews_per_catch": 5.718749999999999
+        },
+        {
+          "alert_rate": 0.18238794129313765,
+          "alerts_per_1000_accounts": 182.38794129313766,
+          "precision": 0.04349717268377556,
+          "prevalence": 0.009916699722332408,
+          "recall": 0.8,
+          "reviews_per_catch": 22.99
+        }
+      ],
+      "positives": 126,
+      "precision_at_budget": 0.06507936507936508,
+      "projected_precision_at_budget": 0.06596942880128721,
+      "projected_recall_at_budget": 0.656,
+      "recall_at_budget": 0.656,
+      "roc_auc": 0.9270551282051283,
+      "rows": 12625,
+      "seed": 20261005,
+      "target_prevalence": 0.01
+    },
+    {
+      "achieved_prevalence": 0.005015124980098711,
+      "average_precision": 0.28830525836764886,
+      "average_precision_lift": 58.31206354726318,
+      "operating_points": [
+        {
+          "alert_rate": 0.13883572567783095,
+          "alerts_per_1000_accounts": 138.83572567783096,
+          "precision": 0.01780585870189546,
+          "prevalence": 0.0049441786283891545,
+          "recall": 0.5,
+          "reviews_per_catch": 56.161290322580655
+        },
+        {
+          "alert_rate": 0.2032695374800638,
+          "alerts_per_1000_accounts": 203.2695374800638,
+          "precision": 0.01961553550411926,
+          "prevalence": 0.0049441786283891545,
+          "recall": 0.8064516129032258,
+          "reviews_per_catch": 50.980000000000004
+        }
+      ],
+      "positives": 63,
+      "precision_at_budget": 0.0215311004784689,
+      "projected_precision_at_budget": 0.022784810126582275,
+      "projected_recall_at_budget": 0.43548387096774194,
+      "recall_at_budget": 0.43548387096774194,
+      "roc_auc": 0.8810991215507035,
+      "rows": 12562,
+      "seed": 20261005,
+      "target_prevalence": 0.005
+    },
+    {
+      "achieved_prevalence": 0.0010390025575447571,
+      "average_precision": 0.3220866765809428,
+      "average_precision_lift": 357.5877858218645,
+      "operating_points": [
+        {
+          "alert_rate": 0.001701361088871097,
+          "alerts_per_1000_accounts": 1.701361088871097,
+          "precision": 0.29411764705882354,
+          "prevalence": 0.000900720576461169,
+          "recall": 0.5555555555555556,
+          "reviews_per_catch": 3.4
+        },
+        {
+          "alert_rate": 0.0034027221777421937,
+          "alerts_per_1000_accounts": 3.4027221777421937,
+          "precision": 0.23529411764705882,
+          "prevalence": 0.000900720576461169,
+          "recall": 0.8888888888888888,
+          "reviews_per_catch": 4.25
+        }
+      ],
+      "positives": 13,
+      "precision_at_budget": 0.009009009009009009,
+      "projected_precision_at_budget": 0.009414225941422594,
+      "projected_recall_at_budget": 1.0,
+      "recall_at_budget": 1.0,
+      "roc_auc": 0.9985308357541154,
+      "rows": 12512,
+      "seed": 20261005,
+      "target_prevalence": 0.001
+    },
+    {
+      "achieved_prevalence": 0.009977217377641606,
+      "average_precision": 0.6892482398470188,
+      "average_precision_lift": 70.055191098051,
+      "operating_points": [
+        {
+          "alert_rate": 0.005116096025186934,
+          "alerts_per_1000_accounts": 5.116096025186934,
+          "precision": 1.0,
+          "prevalence": 0.009838646202282565,
+          "recall": 0.52,
+          "reviews_per_catch": 1.0
+        },
+        {
+          "alert_rate": 0.0833530106257379,
+          "alerts_per_1000_accounts": 83.3530106257379,
+          "precision": 0.09442870632672333,
+          "prevalence": 0.009838646202282565,
+          "recall": 0.8,
+          "reviews_per_catch": 10.59
+        }
+      ],
+      "positives": 127,
+      "precision_at_budget": 0.08031496062992126,
+      "projected_precision_at_budget": 0.08114558472553698,
+      "projected_recall_at_budget": 0.816,
+      "recall_at_budget": 0.816,
+      "roc_auc": 0.9551030206677267,
+      "rows": 12729,
+      "seed": 20261006,
+      "target_prevalence": 0.01
+    },
+    {
+      "achieved_prevalence": 0.004974338728780102,
+      "average_precision": 0.7525611450363698,
+      "average_precision_lift": 173.02064870881628,
+      "operating_points": [
+        {
+          "alert_rate": 0.0026690391459074734,
+          "alerts_per_1000_accounts": 2.6690391459074734,
+          "precision": 0.962962962962963,
+          "prevalence": 0.004349545274812179,
+          "recall": 0.5909090909090909,
+          "reviews_per_catch": 1.0384615384615383
+        },
+        {
+          "alert_rate": 0.0061289047054171614,
+          "alerts_per_1000_accounts": 6.1289047054171615,
+          "precision": 0.5806451612903226,
+          "prevalence": 0.004349545274812179,
+          "recall": 0.8181818181818182,
+          "reviews_per_catch": 1.722222222222222
+        }
+      ],
+      "positives": 63,
+      "precision_at_budget": 0.040553907022749754,
+      "projected_precision_at_budget": 0.040553907022749754,
+      "projected_recall_at_budget": 0.9318181818181818,
+      "recall_at_budget": 0.9318181818181818,
+      "roc_auc": 0.9571358942883962,
+      "rows": 12665,
+      "seed": 20261006,
+      "target_prevalence": 0.005
+    },
+    {
+      "achieved_prevalence": 0.0010305192231470472,
+      "average_precision": 0.09685862314137422,
+      "average_precision_lift": 108.4386096413874,
+      "operating_points": [
+        {
+          "alert_rate": 0.015879317189360857,
+          "alerts_per_1000_accounts": 15.879317189360858,
+          "precision": 0.03125,
+          "prevalence": 0.0008932115919015483,
+          "recall": 0.5555555555555556,
+          "reviews_per_catch": 32.0
+        },
+        {
+          "alert_rate": 1.0,
+          "alerts_per_1000_accounts": 1000.0,
+          "precision": 0.0008932115919015483,
+          "prevalence": 0.0008932115919015483,
+          "recall": 1.0,
+          "reviews_per_catch": 1119.5555555555554
+        }
+      ],
+      "positives": 13,
+      "precision_at_budget": 0.004965243296921549,
+      "projected_precision_at_budget": 0.007692307692307691,
+      "projected_recall_at_budget": 0.5555555555555556,
+      "recall_at_budget": 0.5555555555555556,
+      "roc_auc": 0.7609350683752194,
+      "rows": 12615,
+      "seed": 20261006,
+      "target_prevalence": 0.001
+    },
+    {
+      "achieved_prevalence": 0.009974667511082964,
+      "average_precision": 0.8143704584707562,
+      "average_precision_lift": 98.98035162714443,
+      "operating_points": [
+        {
+          "alert_rate": 0.005253766851704996,
+          "alerts_per_1000_accounts": 5.253766851704996,
+          "precision": 0.9811320754716982,
+          "prevalence": 0.008227597145122919,
+          "recall": 0.6265060240963856,
+          "reviews_per_catch": 1.0192307692307692
+        },
+        {
+          "alert_rate": 0.011498810467882634,
+          "alerts_per_1000_accounts": 11.498810467882633,
+          "precision": 0.5775862068965517,
+          "prevalence": 0.008227597145122919,
+          "recall": 0.8072289156626506,
+          "reviews_per_catch": 1.7313432835820897
+        }
+      ],
+      "positives": 126,
+      "precision_at_budget": 0.07837301587301587,
+      "projected_precision_at_budget": 0.07899999999999999,
+      "projected_recall_at_budget": 0.9518072289156626,
+      "recall_at_budget": 0.9518072289156626,
+      "roc_auc": 0.9837129627957105,
+      "rows": 12632,
+      "seed": 20261007,
+      "target_prevalence": 0.01
+    },
+    {
+      "achieved_prevalence": 0.005012331927758772,
+      "average_precision": 0.9031687388655301,
+      "average_precision_lift": 221.07808446962096,
+      "operating_points": [
+        {
+          "alert_rate": 0.0025906735751295338,
+          "alerts_per_1000_accounts": 2.5906735751295336,
+          "precision": 1.0,
+          "prevalence": 0.004085292945396573,
+          "recall": 0.6341463414634146,
+          "reviews_per_catch": 1.0
+        },
+        {
+          "alert_rate": 0.0033878039059386214,
+          "alerts_per_1000_accounts": 3.3878039059386214,
+          "precision": 0.9705882352941176,
+          "prevalence": 0.004085292945396573,
+          "recall": 0.8048780487804879,
+          "reviews_per_catch": 1.0303030303030303
+        }
+      ],
+      "positives": 63,
+      "precision_at_budget": 0.040877367896311065,
+      "projected_precision_at_budget": 0.07992202729044834,
+      "projected_recall_at_budget": 1.0,
+      "recall_at_budget": 1.0,
+      "roc_auc": 0.9986432240510499,
+      "rows": 12569,
+      "seed": 20261007,
+      "target_prevalence": 0.005
+    },
+    {
+      "achieved_prevalence": 0.0010384215991692627,
+      "average_precision": 0.6668089887640448,
+      "average_precision_lift": 666.5422651685392,
+      "operating_points": [
+        {
+          "alert_rate": 0.0005002000800320128,
+          "alerts_per_1000_accounts": 0.5002000800320128,
+          "precision": 1.0,
+          "prevalence": 0.0010004001600640256,
+          "recall": 0.5,
+          "reviews_per_catch": 1.0
+        },
+        {
+          "alert_rate": 0.0024009603841536617,
+          "alerts_per_1000_accounts": 2.4009603841536618,
+          "precision": 0.3333333333333333,
+          "prevalence": 0.0010004001600640256,
+          "recall": 0.8,
+          "reviews_per_catch": 3.0
+        }
+      ],
+      "positives": 13,
+      "precision_at_budget": 0.01001001001001001,
+      "projected_precision_at_budget": 0.01145475372279496,
+      "projected_recall_at_budget": 1.0,
+      "recall_at_budget": 1.0,
+      "roc_auc": 0.9953635089124775,
+      "rows": 12519,
+      "seed": 20261007,
+      "target_prevalence": 0.001
+    }
+  ],
+  "natural": [
+    {
+      "achieved_prevalence": 0.06746357863279791,
+      "average_precision": 0.8741515245961999,
+      "average_precision_lift": 12.957384448195057,
+      "operating_points": [
+        {
+          "alert_rate": 0.03503922301083302,
+          "alerts_per_1000_accounts": 35.03922301083303,
+          "precision": 1.0,
+          "prevalence": 0.06746357863279791,
+          "recall": 0.5193798449612403,
+          "reviews_per_catch": 1.0
+        },
+        {
+          "alert_rate": 0.08427344041837878,
+          "alerts_per_1000_accounts": 84.27344041837878,
+          "precision": 0.6418439716312057,
+          "prevalence": 0.06746357863279791,
+          "recall": 0.8017718715393134,
+          "reviews_per_catch": 1.558011049723757
+        }
+      ],
+      "positives": 908,
+      "precision_at_budget": 0.5971599402092675,
+      "projected_precision_at_budget": 0.5976065818997756,
+      "projected_recall_at_budget": 0.884828349944629,
+      "recall_at_budget": 0.884828349944629,
+      "roc_auc": 0.9770928608957697,
+      "rows": 13407,
+      "seed": 20261005,
+      "target_prevalence": 0.06746357863279791
+    },
+    {
+      "achieved_prevalence": 0.058511036288814065,
+      "average_precision": 0.9009969569691354,
+      "average_precision_lift": 15.398752340015978,
+      "operating_points": [
+        {
+          "alert_rate": 0.029330340441451552,
+          "alerts_per_1000_accounts": 29.330340441451554,
+          "precision": 0.9974489795918368,
+          "prevalence": 0.058511036288814065,
+          "recall": 0.5,
+          "reviews_per_catch": 1.0025575447570332
+        },
+        {
+          "alert_rate": 0.05155256266367377,
+          "alerts_per_1000_accounts": 51.55256266367377,
+          "precision": 0.9100145137880987,
+          "prevalence": 0.058511036288814065,
+          "recall": 0.8017902813299232,
+          "reviews_per_catch": 1.098883572567783
+        }
+      ],
+      "positives": 786,
+      "precision_at_budget": 0.5486526946107785,
+      "projected_precision_at_budget": 0.5578386605783866,
+      "projected_recall_at_budget": 0.9373401534526854,
+      "recall_at_budget": 0.9373401534526854,
+      "roc_auc": 0.9808317782710525,
+      "rows": 13388,
+      "seed": 20261006,
+      "target_prevalence": 0.058511036288814065
+    },
+    {
+      "achieved_prevalence": 0.05250379362670713,
+      "average_precision": 0.8756535373928441,
+      "average_precision_lift": 16.67790985959203,
+      "operating_points": [
+        {
+          "alert_rate": 0.027314112291350532,
+          "alerts_per_1000_accounts": 27.314112291350533,
+          "precision": 0.9888888888888889,
+          "prevalence": 0.05250379362670713,
+          "recall": 0.5144508670520231,
+          "reviews_per_catch": 1.0112359550561798
+        },
+        {
+          "alert_rate": 0.053945371775417306,
+          "alerts_per_1000_accounts": 53.94537177541731,
+          "precision": 0.780590717299578,
+          "prevalence": 0.05250379362670713,
+          "recall": 0.8020231213872833,
+          "reviews_per_catch": 1.2810810810810813
+        }
+      ],
+      "positives": 695,
+      "precision_at_budget": 0.49165402124430957,
+      "projected_precision_at_budget": 0.4916540212443095,
+      "projected_recall_at_budget": 0.9364161849710982,
+      "recall_at_budget": 0.9364161849710982,
+      "roc_auc": 0.9795013617697267,
+      "rows": 13201,
+      "seed": 20261007,
+      "target_prevalence": 0.05250379362670713
+    }
+  ],
+  "projected": [
+    {
+      "at_budget": {
+        "alert_rate": 0.09602598239804189,
+        "alerts_per_1000_accounts": 96.02598239804189,
+        "precision": 0.09721898115095817,
+        "prevalence": 0.01,
+        "recall": 0.9335548172757475,
+        "reviews_per_catch": 10.286057189256443
+      },
+      "operating_points": [
+        {
+          "alert_rate": 0.005193798449612403,
+          "alerts_per_1000_accounts": 5.1937984496124034,
+          "precision": 1.0,
+          "prevalence": 0.01,
+          "recall": 0.5193798449612403,
+          "reviews_per_catch": 1.0
+        },
+        {
+          "alert_rate": 0.040060660551637324,
+          "alerts_per_1000_accounts": 40.060660551637326,
+          "precision": 0.20013945364326852,
+          "prevalence": 0.01,
+          "recall": 0.8017718715393134,
+          "reviews_per_catch": 4.9965160881392965
+        }
+      ],
+      "prevalence": 0.01,
+      "seed": 20261005
+    },
+    {
+      "at_budget": {
+        "alert_rate": 0.09179603878754843,
+        "alerts_per_1000_accounts": 91.79603878754843,
+        "precision": 0.050849406445323576,
+        "prevalence": 0.005,
+        "recall": 0.9335548172757475,
+        "reviews_per_catch": 19.665912935980124
+      },
+      "operating_points": [
+        {
+          "alert_rate": 0.0025968992248062016,
+          "alerts_per_1000_accounts": 2.5968992248062017,
+          "precision": 1.0,
+          "prevalence": 0.005,
+          "recall": 0.5193798449612403,
+          "reviews_per_catch": 1.0
+        },
+        {
+          "alert_rate": 0.036213634233517755,
+          "alerts_per_1000_accounts": 36.21363423351775,
+          "precision": 0.11070027746583197,
+          "prevalence": 0.005,
+          "recall": 0.8017718715393134,
+          "reviews_per_catch": 9.033401025653738
+        }
+      ],
+      "prevalence": 0.005,
+      "seed": 20261005
+    },
+    {
+      "at_budget": {
+        "alert_rate": 0.09897673699961833,
+        "alerts_per_1000_accounts": 98.97673699961832,
+        "precision": 0.00943206298343971,
+        "prevalence": 0.001,
+        "recall": 0.9335548172757475,
+        "reviews_per_catch": 106.02134461524952
+      },
+      "operating_points": [
+        {
+          "alert_rate": 0.0005193798449612403,
+          "alerts_per_1000_accounts": 0.5193798449612403,
+          "precision": 1.0,
+          "prevalence": 0.001,
+          "recall": 0.5193798449612403,
+          "reviews_per_catch": 1.0
+        },
+        {
+          "alert_rate": 0.03313601317902209,
+          "alerts_per_1000_accounts": 33.136013179022086,
+          "precision": 0.02419638920372301,
+          "prevalence": 0.001,
+          "recall": 0.8017718715393134,
+          "reviews_per_catch": 41.32848052576926
+        }
+      ],
+      "prevalence": 0.001,
+      "seed": 20261005
+    },
+    {
+      "at_budget": {
+        "alert_rate": 0.0994700681083742,
+        "alerts_per_1000_accounts": 99.47006810837419,
+        "precision": 0.09513329769426743,
+        "prevalence": 0.01,
+        "recall": 0.9462915601023018,
+        "reviews_per_catch": 10.511566656857921
+      },
+      "operating_points": [
+        {
+          "alert_rate": 0.00507867758086307,
+          "alerts_per_1000_accounts": 5.0786775808630695,
+          "precision": 0.9845082544401846,
+          "prevalence": 0.01,
+          "recall": 0.5,
+          "reviews_per_catch": 1.0157355161726138
+        },
+        {
+          "alert_rate": 0.012895912826809523,
+          "alerts_per_1000_accounts": 12.895912826809523,
+          "precision": 0.6217398427686859,
+          "prevalence": 0.01,
+          "recall": 0.8017902813299232,
+          "reviews_per_catch": 1.6083897656403585
+        }
+      ],
+      "prevalence": 0.01,
+      "seed": 20261006
+    },
+    {
+      "at_budget": {
+        "alert_rate": 0.09867248935101616,
+        "alerts_per_1000_accounts": 98.67248935101617,
+        "precision": 0.04795113442086057,
+        "prevalence": 0.005,
+        "recall": 0.9462915601023018,
+        "reviews_per_catch": 20.854563965539093
+      },
+      "operating_points": [
+        {
+          "alert_rate": 0.0025790749423825797,
+          "alerts_per_1000_accounts": 2.57907494238258,
+          "precision": 0.9693398043294045,
+          "prevalence": 0.005,
+          "recall": 0.5,
+          "reviews_per_catch": 1.031629976953032
+        },
+        {
+          "alert_rate": 0.008911597834369556,
+          "alerts_per_1000_accounts": 8.911597834369557,
+          "precision": 0.4498577562811693,
+          "prevalence": 0.005,
+          "recall": 0.8017902813299232,
+          "reviews_per_catch": 2.222924882448802
+        }
+      ],
+      "prevalence": 0.005,
+      "seed": 20261006
+    },
+    {
+      "at_budget": {
+        "alert_rate": 0.09732918912030257,
+        "alerts_per_1000_accounts": 97.32918912030257,
+        "precision": 0.009722587526468032,
+        "prevalence": 0.001,
+        "recall": 0.9462915601023018,
+        "reviews_per_catch": 102.85327823253596
+      },
+      "operating_points": [
+        {
+          "alert_rate": 0.0005793928315981881,
+          "alerts_per_1000_accounts": 0.5793928315981881,
+          "precision": 0.8629723612920924,
+          "prevalence": 0.001,
+          "recall": 0.5,
+          "reviews_per_catch": 1.158785663196376
+        },
+        {
+          "alert_rate": 0.005724145840417581,
+          "alerts_per_1000_accounts": 5.724145840417581,
+          "precision": 0.14007160259065518,
+          "prevalence": 0.001,
+          "recall": 0.8017902813299232,
+          "reviews_per_catch": 7.139205816916345
+        }
+      ],
+      "prevalence": 0.001,
+      "seed": 20261006
+    },
+    {
+      "at_budget": {
+        "alert_rate": 0.09978970331749694,
+        "alerts_per_1000_accounts": 99.78970331749694,
+        "precision": 0.09514227758521146,
+        "prevalence": 0.01,
+        "recall": 0.9494219653179191,
+        "reviews_per_catch": 10.510574535115355
+      },
+      "operating_points": [
+        {
+          "alert_rate": 0.0054616130907636645,
+          "alerts_per_1000_accounts": 5.461613090763665,
+          "precision": 0.9419394206485077,
+          "prevalence": 0.01,
+          "recall": 0.5144508670520231,
+          "reviews_per_catch": 1.061639398541701
+        },
+        {
+          "alert_rate": 0.020387303603366748,
+          "alerts_per_1000_accounts": 20.38730360336675,
+          "precision": 0.3933934261197924,
+          "prevalence": 0.01,
+          "recall": 0.8020231213872833,
+          "reviews_per_catch": 2.5419845213567185
+        }
+      ],
+      "prevalence": 0.01,
+      "seed": 20261007
+    },
+    {
+      "at_budget": {
+        "alert_rate": 0.09988806363935968,
+        "alerts_per_1000_accounts": 99.88806363935967,
+        "precision": 0.0475966305371668,
+        "prevalence": 0.005,
+        "recall": 0.9508670520231214,
+        "reviews_per_catch": 21.009890589190544
+      },
+      "operating_points": [
+        {
+          "alert_rate": 0.002890960292979526,
+          "alerts_per_1000_accounts": 2.890960292979526,
+          "precision": 0.889757753334294,
+          "prevalence": 0.005,
+          "recall": 0.5144508670520231,
+          "reviews_per_catch": 1.1239014172706923
+        },
+        {
+          "alert_rate": 0.016439647957993433,
+          "alerts_per_1000_accounts": 16.439647957993433,
+          "precision": 0.24392953043660418,
+          "prevalence": 0.005,
+          "recall": 0.8020231213872833,
+          "reviews_per_catch": 4.099544643939263
+        }
+      ],
+      "prevalence": 0.005,
+      "seed": 20261007
+    },
+    {
+      "at_budget": {
+        "alert_rate": 0.0999869016452326,
+        "alerts_per_1000_accounts": 99.9869016452326,
+        "precision": 0.009509916162788297,
+        "prevalence": 0.001,
+        "recall": 0.9508670520231214,
+        "reviews_per_catch": 105.15339808282822
+      },
+      "operating_points": [
+        {
+          "alert_rate": 0.0008344380547522153,
+          "alerts_per_1000_accounts": 0.8344380547522153,
+          "precision": 0.6165237360906176,
+          "prevalence": 0.001,
+          "recall": 0.5144508670520231,
+          "reviews_per_catch": 1.6219975671026208
+        },
+        {
+          "alert_rate": 0.013281523441694778,
+          "alerts_per_1000_accounts": 13.281523441694778,
+          "precision": 0.060386379989323107,
+          "prevalence": 0.001,
+          "recall": 0.8020231213872833,
+          "reviews_per_catch": 16.560025624599614
+        }
+      ],
+      "prevalence": 0.001,
+      "seed": 20261007
+    }
+  ],
+  "run_id": "ac8add2d",
+  "seeds": [
+    20261005,
+    20261006,
+    20261007
+  ]
+}

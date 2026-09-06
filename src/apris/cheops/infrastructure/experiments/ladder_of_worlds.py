@@ -259,7 +259,13 @@ class RungResult:
     units: tuple[UnitResult, ...]
 
 
-def _forest() -> RandomForestClassifier:
+def detector_model() -> RandomForestClassifier:
+    """The detector every experiment in this project has to use.
+
+    Public and shared on purpose. A prevalence sweep or an evasion curve run
+    with its own forest would measure the forest as well as the world, and
+    the whole point of the ladder is that only the world changes.
+    """
     return RandomForestClassifier(
         n_estimators=200,
         min_samples_leaf=3,
@@ -269,7 +275,9 @@ def _forest() -> RandomForestClassifier:
     )
 
 
-def _recall_at_budget(scores: np.ndarray, truth: np.ndarray) -> float:
+def recall_at_budget(
+    scores: np.ndarray, truth: np.ndarray, budget: float = REVIEW_BUDGET
+) -> float:
     """Share of the fraud caught inside the slice a human can actually review.
 
     Reported beside ROC-AUC because it is the only one of the three an
@@ -278,18 +286,21 @@ def _recall_at_budget(scores: np.ndarray, truth: np.ndarray) -> float:
     """
     if truth.sum() == 0:
         return 0.0
-    take = max(1, int(len(scores) * REVIEW_BUDGET))
+    take = max(1, int(len(scores) * budget))
     top = np.argsort(-scores)[:take]
     return float(truth[top].sum() / truth.sum())
 
 
-def _evaluate(rows: Sequence[Row], unit: str, coverage: float) -> UnitResult:
+def pooled_out_of_fold(rows: Sequence[Row]) -> tuple[np.ndarray, np.ndarray]:
+    """Out-of-fold scores for one set of rows: purged walk-forward, one forest.
+
+    Returned rather than scored here so that an experiment which needs the
+    whole ranking — a precision at a budget, an ROC curve to project from —
+    reads the same numbers the ladder reads, from the same split.
+    """
     labels = np.array([r.label for r in rows], dtype=int)
-    base_rate = float(labels.mean()) if len(labels) else 0.0
-    blank = UnitResult(unit, len(rows), int(labels.sum()), base_rate, coverage,
-                       None, None, None)
     if len(rows) < 40 or len(np.unique(labels)) < 2:
-        return blank
+        return np.asarray([]), np.asarray([])
 
     columns = sorted(rows[0].features)
     matrix = pd.DataFrame([r.features for r in rows], columns=columns).astype(float).to_numpy()
@@ -302,14 +313,27 @@ def _evaluate(rows: Sequence[Row], unit: str, coverage: float) -> UnitResult:
         train_labels = labels[list(split.train)]
         if len(np.unique(train_labels)) < 2:
             continue
-        model = _forest()
+        model = detector_model()
         model.fit(matrix[list(split.train)], train_labels)
         probability = np.asarray(model.predict_proba(matrix[list(split.test)]))[:, 1]
         pooled_scores.extend(float(p) for p in probability)
         pooled_truth.extend(int(t) for t in labels[list(split.test)])
 
-    scores = np.asarray(pooled_scores)
-    truth = np.asarray(pooled_truth)
+    return np.asarray(pooled_scores), np.asarray(pooled_truth)
+
+
+def evaluate_unit(rows: Sequence[Row], unit: str, coverage: float) -> UnitResult:
+    """Score one unit of analysis, ceiling carried alongside the score.
+
+    Public for the same reason as ``detector_model``: an experiment that
+    scores a world its own way is comparing two things at once.
+    """
+    labels = np.array([r.label for r in rows], dtype=int)
+    base_rate = float(labels.mean()) if len(labels) else 0.0
+    blank = UnitResult(unit, len(rows), int(labels.sum()), base_rate, coverage,
+                       None, None, None)
+
+    scores, truth = pooled_out_of_fold(rows)
     if len(truth) == 0 or len(np.unique(truth)) < 2:
         return blank
 
@@ -321,7 +345,7 @@ def _evaluate(rows: Sequence[Row], unit: str, coverage: float) -> UnitResult:
         coverage=coverage,
         roc_auc=float(roc_auc_score(truth, scores)),
         average_precision=float(average_precision_score(truth, scores)),
-        recall_at_budget=_recall_at_budget(scores, truth),
+        recall_at_budget=recall_at_budget(scores, truth),
     )
 
 
@@ -346,8 +370,8 @@ def run_rung(rung: Rung, seed: int) -> RungResult:
         seed=seed,
         world=world.summary(),
         units=(
-            _evaluate(account_rows, "account", ceiling.coverage),
-            _evaluate(structural, "network", discovery.coverage),
+            evaluate_unit(account_rows, "account", ceiling.coverage),
+            evaluate_unit(structural, "network", discovery.coverage),
         ),
     )
 
@@ -440,10 +464,15 @@ def write_report(report: LadderOfWorldsReport, path: Path = REPORT_PATH) -> Path
 __all__ = [
     "DETECTOR_VERSION",
     "LADDER",
+    "REVIEW_BUDGET",
     "LadderOfWorldsReport",
     "Rung",
     "RungResult",
     "UnitResult",
+    "detector_model",
+    "evaluate_unit",
+    "pooled_out_of_fold",
+    "recall_at_budget",
     "run_ladder_of_worlds",
     "run_rung",
     "write_report",
