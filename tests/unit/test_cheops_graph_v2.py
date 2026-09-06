@@ -89,3 +89,20 @@ def test_graph_paths_constants() -> None:
     metrics_norm = str(GRAPH_V2_METRICS_PATH).replace("\\", "/")
     assert artifact_norm.endswith("artifacts/cheops_v2_graph.joblib")
     assert metrics_norm.endswith("artifacts/cheops_v2_graph_metrics.json")
+
+
+def test_heuristic_graph_weights(monkeypatch) -> None:
+    from apris.cheops.infrastructure.ml.graph_v2 import heuristic_graph_from_case_window
+    
+    def dummy_extract(case_window):
+        return {
+            "graph_hub_share": 1.0,
+            "graph_density": 0.0,
+            "graph_fanout_share": 0.0,
+            "graph_relay_share": 0.0,
+            "graph_weight_cv_norm": 0.0,
+        }
+    monkeypatch.setattr("apris.cheops.infrastructure.ml.graph_v2.extract_graph_features_from_case_window", dummy_extract)
+    
+    score = heuristic_graph_from_case_window(None)  # type: ignore
+    assert abs(score - 0.34) < 1e-6

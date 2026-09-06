@@ -127,7 +127,7 @@ def fifo_match(
     matches: list[FlowMatch] = []
     total_in = total_out = unmatched_out = 0.0
 
-    for event in sorted(events, key=lambda e: e.ts):
+    for event in sorted(events, key=lambda e: (e.ts, 0 if e.receiver_id == account else 1, e.event_id)):
         if event.receiver_id == account:
             queue.append((event.amount, event.ts))
             total_in += event.amount

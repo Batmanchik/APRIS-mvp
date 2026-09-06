@@ -45,6 +45,8 @@ TINY = SimulationConfig(
     pyramids=3,
     terminals=10,
     merchants=50,
+    crypto_layering=0,
+    crypto_traders=0,
 )
 
 # Large enough that walk-forward has something to work with.

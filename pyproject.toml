@@ -20,6 +20,7 @@ dependencies = [
     "requests>=2.31",
     "lightgbm>=4.0",
     "mlflow>=2.0",
+    "elasticsearch>=8.12",
 ]
 
 [project.optional-dependencies]

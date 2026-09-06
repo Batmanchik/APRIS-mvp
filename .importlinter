@@ -1,5 +1,6 @@
 [importlinter]
 root_package = apris
+include_external_packages = True
 
 [importlinter:contract:cheops_layers]
 name = Cheops Clean Architecture Layers
@@ -9,3 +10,17 @@ layers =
     apris.cheops.infrastructure
     apris.cheops.application
     apris.cheops.domain
+
+[importlinter:contract:domain_no_network]
+name = Domain layer must not use network libraries
+type = forbidden
+source_modules =
+    apris.cheops.domain
+forbidden_modules =
+    elasticsearch
+    requests
+    httpx
+    urllib
+    socket
+    psycopg2
+    sqlalchemy

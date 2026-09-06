@@ -22,8 +22,8 @@ GRAPH_V2_METRICS_PATH = Path("artifacts") / "cheops_v2_graph_metrics.json"
 GRAPH_FEATURE_NAMES = [
     "graph_density",
     "graph_hub_share",
-    "graph_component_compactness",
-    "graph_transitivity",
+    "graph_fanout_share",
+    "graph_relay_share",
     "graph_weight_cv_norm",
 ]
 
@@ -111,10 +111,10 @@ def build_graph_matrix_from_tabular(features_df: pd.DataFrame) -> pd.DataFrame:
         {
             "graph_density": (0.05 + 0.95 * (0.38 * central + 0.34 * depth + 0.28 * entropy_low)),
             "graph_hub_share": (0.04 + 0.96 * (0.55 * central + 0.30 * gini + 0.15 * payout)),
-            "graph_component_compactness": (
+            "graph_fanout_share": (
                 0.06 + 0.94 * (0.42 * depth + 0.34 * referral + 0.24 * (1.0 - entropy_low))
             ),
-            "graph_transitivity": (0.03 + 0.97 * (0.40 * central + 0.32 * depth + 0.28 * referral)),
+            "graph_relay_share": (0.03 + 0.97 * (0.40 * central + 0.32 * depth + 0.28 * referral)),
             "graph_weight_cv_norm": (0.05 + 0.95 * (0.47 * gini + 0.31 * payout + 0.22 * central)),
         },
         index=features_df.index,
@@ -199,8 +199,8 @@ def train_graph_artifact(
     heuristic = (
         0.34 * x_test["graph_hub_share"].to_numpy(dtype=float)
         + 0.30 * x_test["graph_density"].to_numpy(dtype=float)
-        + 0.18 * x_test["graph_component_compactness"].to_numpy(dtype=float)
-        + 0.10 * x_test["graph_transitivity"].to_numpy(dtype=float)
+        + 0.18 * x_test["graph_fanout_share"].to_numpy(dtype=float)
+        + 0.10 * x_test["graph_relay_share"].to_numpy(dtype=float)
         + 0.08 * x_test["graph_weight_cv_norm"].to_numpy(dtype=float)
     )
     y_test_float = y_test.to_numpy(dtype=float)
@@ -272,42 +272,8 @@ def load_graph_artifact(path: str | Path = GRAPH_V2_ARTIFACT_PATH) -> dict[str, 
 
 
 def extract_graph_features_from_case_window(case_window: CaseWindow) -> dict[str, float]:
-    graph = nx.DiGraph()
-    for event in case_window.events:
-        graph.add_edge(event.sender_id, event.receiver_id, weight=float(event.amount))
-
-    if graph.number_of_nodes() == 0:
-        return {name: 0.0 for name in GRAPH_FEATURE_NAMES}
-
-    density = float(nx.density(graph)) if graph.number_of_nodes() > 1 else 0.0
-
-    in_degrees = dict(graph.in_degree())
-    max_in = max(in_degrees.values()) if in_degrees else 0.0
-    sum_in = float(sum(in_degrees.values()))
-    hub_share = 0.0 if sum_in <= 0 else max_in / sum_in
-
-    components = nx.number_weakly_connected_components(graph)
-    compactness = 1.0 / float(max(components, 1))
-
-    undirected = graph.to_undirected()
-    if undirected.number_of_nodes() >= 3:
-        transitivity = float(nx.transitivity(undirected))
-    else:
-        transitivity = 0.0
-
-    weights = np.asarray([float(data.get("weight", 0.0)) for _, _, data in graph.edges(data=True)], dtype=float)
-    mean_weight = float(np.mean(weights)) if weights.size > 0 else 0.0
-    std_weight = float(np.std(weights, ddof=0)) if weights.size > 0 else 0.0
-    weight_cv = 0.0 if mean_weight <= 0 else std_weight / mean_weight
-    weight_cv_norm = min(weight_cv / 2.0, 1.0)
-
-    return {
-        "graph_density": _clip01(density),
-        "graph_hub_share": _clip01(hub_share),
-        "graph_component_compactness": _clip01(compactness),
-        "graph_transitivity": _clip01(transitivity),
-        "graph_weight_cv_norm": _clip01(weight_cv_norm),
-    }
+    from apris.cheops.infrastructure.ml.event_features_v2 import graph_features_from_events
+    return graph_features_from_events(case_window.events)
 
 
 def predict_graph_from_case_window(case_window: CaseWindow, artifact: dict[str, Any]) -> float:
@@ -322,8 +288,8 @@ def heuristic_graph_from_case_window(case_window: CaseWindow) -> float:
     raw = (
         0.34 * features["graph_hub_share"]
         + 0.30 * features["graph_density"]
-        + 0.18 * features["graph_component_compactness"]
-        + 0.10 * features["graph_transitivity"]
+        + 0.18 * features["graph_fanout_share"]
+        + 0.10 * features["graph_relay_share"]
         + 0.08 * features["graph_weight_cv_norm"]
     )
     return _clip01(raw)
