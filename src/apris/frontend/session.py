@@ -13,72 +13,36 @@ it, because a run too thin to measure must not be read as a measurement.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 import streamlit as st
 
 from apris.cheops.infrastructure.ml.case_pipeline import CaseDataset, build_case_dataset
-from apris.cheops.infrastructure.simulation.config import SimulationConfig
 from apris.cheops.infrastructure.simulation.generator import SimulatedWorld, generate_world
+from apris.cheops.infrastructure.simulation.presets import (
+    DEFAULT_PRESET,
+    PRESETS,
+    WorldPreset,
+    preset_config,
+)
+from apris.cheops.infrastructure.simulation.presets import DEFAULT_SEED as PRESET_SEED
 
 WORLD_KEY = "cheops_world"
 DATASET_KEY = "cheops_dataset"
 SCALE_KEY = "cheops_scale"
 
 
-@dataclass(frozen=True)
-class Scale:
-    key: str
-    label: str
-    note: str
-    config: SimulationConfig
+#: The presets live in the simulation layer, not here. They used to be
+#: defined in this module, which meant the pipeline script and the interface
+#: could disagree about what "the demo world" is — and two screens quoting
+#: different numbers for the same run is how a demo loses the room.
+Scale = WorldPreset
+SCALES: dict[str, Scale] = PRESETS
 
-
-SCALES: dict[str, Scale] = {
-    "quick": Scale(
-        key="quick",
-        label="Быстрый (демо)",
-        note=(
-            "Несколько секунд. Мошеннических кандидатов здесь непропорционально "
-            "много, и задача разделяется почти идеально — для метрики берите "
-            "полный мир."
-        ),
-        config=SimulationConfig(
-            seed=17,
-            days=60,
-            salary_earners=400,
-            freelancers=60,
-            traders=40,
-            fast_spenders=200,
-            family_circles=20,
-            crowd_collections=25,
-            marketplace_sellers=100,
-            employers=8,
-            mule_networks=40,
-            pyramids=8,
-            terminals=24,
-            merchants=120,
-        ),
-    ),
-    "full": Scale(
-        key="full",
-        label="Полный мир",
-        note=(
-            "Около двадцати секунд. Та же конфигурация, на которой считался "
-            "аудит, и единственная, по которой стоит судить о качестве."
-        ),
-        config=SimulationConfig(),
-    ),
-}
-
-DEFAULT_SCALE = "quick"
-DEFAULT_SEED = 17
+DEFAULT_SCALE = DEFAULT_PRESET
+DEFAULT_SEED = PRESET_SEED
 
 
 def build_world(scale_key: str, seed: int) -> SimulatedWorld:
-    scale = SCALES[scale_key]
-    config = SimulationConfig(**{**scale.config.__dict__, "seed": seed})
-    return generate_world(config)
+    return generate_world(preset_config(scale_key, seed))
 
 
 def build_dataset(world: SimulatedWorld) -> CaseDataset:

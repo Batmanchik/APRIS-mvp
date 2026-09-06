@@ -134,9 +134,36 @@ Runtime inference behavior for v2:
 - If `cheops_v2_fusion_meta.joblib` exists, engine uses calibrated logistic fusion head for `global_risk`.
 - If fusion artifact is absent, engine falls back to deterministic weighted fusion (v1-compatible behavior).
 
+## Run the whole thing (one command)
+
+```
+python scripts/run_demo.py                  # quick world
+python scripts/run_demo.py --preset full    # the world the audit was measured on
+```
+
+It builds the analyst queue, starts the API, waits for its health check
+rather than sleeping, starts Streamlit, waits for that, and prints the URL.
+Ctrl+C stops both. The health checks are the same ones `docker-compose.yml`
+uses, so "it did not come up" is diagnosed the same way with or without
+Docker.
+
+The queue on its own, without the interface:
+
+```
+python scripts/run_pipeline.py --preset full --target-recall 0.8
+```
+
+World, discovery, features, detector, threshold — one call, writing
+`artifacts/analyst_queue.json`. The threshold is read off the earlier
+walk-forward folds and the queue is cut on the last one, which the model
+never trained on, so the precision it reports is the precision it would have
+on Monday. The queue's LENGTH is an output, not a setting: that is the
+prevalence result (R6) made operational, since a fixed review budget is the
+wrong policy once fraud is rare.
+
 ## Interface
 
-Four pages, and the order is the workflow:
+Five pages, and the order is the workflow:
 
 1. **Поиск сетей** — `discover_candidates` proposes clusters from the event
    stream alone. Labels are attached afterwards, so the coverage shown is a
@@ -149,6 +176,11 @@ Four pages, and the order is the workflow:
 4. **Ручная проверка** — the original nine features for manual entry, with
    the uncalibrated thresholds labelled as such, and a button that computes
    the same nine from a pyramid organiser's real cash flow.
+5. **Очередь аналитика** — the end product rather than a part of it: the
+   cases the pipeline put on somebody's desk, the threshold they were cut
+   by, and the price of that threshold in reviews per catch. Reads
+   `artifacts/analyst_queue.json`; if no run has happened yet it says so
+   instead of failing.
 
 Three things the interface deliberately does not do, each a defect that was
 removed rather than a precaution: draw a graph built from the features it
@@ -157,12 +189,17 @@ metric computed on a grouping the detector was handed in advance.
 `tests/unit/test_scanner_architecture.py` parses every page and fails if any
 of them comes back.
 
-The dossier and manual pages need the API running:
+The dossier and manual pages need the API running. `scripts/run_demo.py`
+does this for you; by hand it is:
 
 ```powershell
 python -m uvicorn apris.api.main:app --port 8000
 streamlit run app.py
 ```
+
+Every page is rendered end to end by `tests/smoke/test_pages_render.py`, and
+that test fails if a page file exists without a line in its list — a screen
+nobody opens is how an interface rots behind a moving core.
 
 ## Case-Level Baseline
 
