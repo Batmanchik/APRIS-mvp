@@ -270,7 +270,7 @@ def _spend_down(
     while remaining > 1000:
         step = min(remaining, b.uniform(EVERYDAY_SPEND_RANGE))
         moment = moment + timedelta(hours=float(b.rng.uniform(*delay_hours)) / 6.0)
-        if b.rng.random() < 0.22 and terminals:
+        if b.rng.random() < 0.22 and len(terminals) > 0:
             b.cash_out(account, str(b.rng.choice(terminals)), step, moment)
         else:
             b.emit(account, str(b.rng.choice(merchants)), step, moment)
@@ -419,8 +419,8 @@ def _gen_family_circles(b: _Builder, merchants: list[str], terminals: list[str])
     """Transfers inside a small closed group. Breaks dense-community signals."""
     ids: list[str] = []
     for _ in range(b.config.family_circles):
-        group = [b.new_account("ACC") for _ in range(int(b.rng.integers(3, 6)))]
-        ids.extend(group)
+        group = np.array([b.new_account("ACC") for _ in range(int(b.rng.integers(3, 6)))])
+        ids.extend(group.tolist())
         for day in range(0, b.config.days, 3):
             src, dst = b.rng.choice(group, size=2, replace=False)
             amount = b.uniform(FAMILY_TRANSFER_RANGE)
@@ -768,17 +768,17 @@ def generate_world(config: SimulationConfig | None = None) -> SimulatedWorld:
     """Build a full synthetic world and return it with its ground truth."""
     b = _Builder(config or SimulationConfig())
 
-    terminals = [b.new_terminal() for _ in range(b.config.terminals)]
-    merchants = [
+    terminals = np.array([b.new_terminal() for _ in range(b.config.terminals)])
+    merchants = np.array([
         b.new_account("MER", account_type=TYPE_MERCHANT) for _ in range(b.config.merchants)
-    ]
+    ])
 
     # ASSUMED: few large employers rather than many small ones. With a
     # hundred tiny companies nobody accumulates a fan-out and the honest
     # counterpart of "handing money to many people" never appears.
-    employers = [
+    employers = np.array([
         b.new_account("EMP", account_type=TYPE_COMPANY) for _ in range(b.config.employers)
-    ]
+    ])
     for employer in employers:
         b.world.populations[employer] = "employer"
 
