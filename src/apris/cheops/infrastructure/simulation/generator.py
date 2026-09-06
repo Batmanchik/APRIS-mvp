@@ -19,8 +19,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from typing import Any
 
 import numpy as np
+from numpy.typing import NDArray
 
 from apris.cheops.domain.models import TransactionEvent
 from apris.cheops.infrastructure.simulation.config import (
@@ -255,8 +257,8 @@ def _spend_down(
     account: str,
     amount: float,
     after: datetime,
-    merchants: list[str],
-    terminals: list[str],
+    merchants: AccountPool,
+    terminals: AccountPool,
     delay_hours: tuple[float, float] = NORMAL_SPEND_DELAY_HOURS,
 ) -> None:
     """Ordinary spending: several payments and occasional cash.
@@ -277,8 +279,16 @@ def _spend_down(
         remaining -= step
 
 
+#: Пул счетов, из которого выбирают случайного контрагента. Это либо список,
+#: либо ``np.ndarray``: массивы появились ради скорости — ``rng.choice`` по
+#: списку каждый раз строит массив заново, а генератор дёргает его сотни
+#: тысяч раз. Тип обязан допускать оба, иначе ускорение живёт ценой красного
+#: гейта, и следующий человек чинит его откатом ускорения.
+AccountPool = list[str] | NDArray[Any]
+
+
 def _gen_salary_earners(
-    b: _Builder, merchants: list[str], terminals: list[str], employers: list[str]
+    b: _Builder, merchants: AccountPool, terminals: AccountPool, employers: AccountPool
 ) -> list[str]:
     """Monthly income, gradual spending.
 
@@ -306,7 +316,7 @@ def _gen_salary_earners(
     return ids
 
 
-def _gen_freelancers(b: _Builder, merchants: list[str], terminals: list[str]) -> list[str]:
+def _gen_freelancers(b: _Builder, merchants: AccountPool, terminals: AccountPool) -> list[str]:
     """Irregular income from MANY distinct payers.
 
     Breaks the "many new counterparties" signal: an honest freelancer has
@@ -325,7 +335,7 @@ def _gen_freelancers(b: _Builder, merchants: list[str], terminals: list[str]) ->
     return ids
 
 
-def _gen_traders(b: _Builder, merchants: list[str], terminals: list[str]) -> list[str]:
+def _gen_traders(b: _Builder, merchants: AccountPool, terminals: AccountPool) -> list[str]:
     """Many small sales, periodic LARGE cash withdrawal.
 
     Breaks the "large cash-out" signal: honest revenue is withdrawn too.
@@ -348,7 +358,7 @@ def _gen_traders(b: _Builder, merchants: list[str], terminals: list[str]) -> lis
     return ids
 
 
-def _gen_fast_spenders(b: _Builder, terminals: list[str], employers: list[str]) -> list[str]:
+def _gen_fast_spenders(b: _Builder, terminals: AccountPool, employers: AccountPool) -> list[str]:
     """HARD NEGATIVE 1 — a student who withdraws everything at once.
 
     Money arrives and is fully withdrawn within minutes. At the level of a
@@ -383,7 +393,7 @@ def _gen_fast_spenders(b: _Builder, terminals: list[str], employers: list[str]) 
     return ids
 
 
-def _gen_marketplace_sellers(b: _Builder, terminals: list[str]) -> list[str]:
+def _gen_marketplace_sellers(b: _Builder, terminals: AccountPool) -> list[str]:
     """HARD NEGATIVE 2 — sold something to a stranger and took the cash.
 
     Sold a phone, received a transfer from someone never seen before,
@@ -415,7 +425,7 @@ def _gen_marketplace_sellers(b: _Builder, terminals: list[str]) -> list[str]:
     return ids
 
 
-def _gen_family_circles(b: _Builder, merchants: list[str], terminals: list[str]) -> list[str]:
+def _gen_family_circles(b: _Builder, merchants: AccountPool, terminals: AccountPool) -> list[str]:
     """Transfers inside a small closed group. Breaks dense-community signals."""
     ids: list[str] = []
     for _ in range(b.config.family_circles):
@@ -430,7 +440,7 @@ def _gen_family_circles(b: _Builder, merchants: list[str], terminals: list[str])
     return ids
 
 
-def _gen_crowd_collections(b: _Builder, merchants: list[str], terminals: list[str]) -> None:
+def _gen_crowd_collections(b: _Builder, merchants: AccountPool, terminals: AccountPool) -> None:
     """HARD NEGATIVE 3 — a whip-round for a common cause.
 
     Forty people send money to one person who spends it over weeks. This is
@@ -488,9 +498,9 @@ def _gen_crypto_traders(b: _Builder) -> list[str]:
 
 def _gen_mule_network(
     b: _Builder,
-    merchants: list[str],
-    terminals: list[str],
-    employers: list[str],
+    merchants: AccountPool,
+    terminals: AccountPool,
+    employers: AccountPool,
     index: int,
 ) -> SimulatedNetwork:
     """A fast mule network: source(s) -> mules -> ATM inside a tight window.
@@ -605,7 +615,7 @@ def _gen_mule_network(
     )
 
 
-def _gen_pyramid(b: _Builder, terminals: list[str], index: int) -> SimulatedNetwork:
+def _gen_pyramid(b: _Builder, terminals: AccountPool, index: int) -> SimulatedNetwork:
     """A slow scheme: payouts funded by inflow.
 
     The same invariant as a mule network — transit without own income —

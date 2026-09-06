@@ -1,7 +1,19 @@
-import time
+"""Стресс-тест сэмплера: миллион рёбер, замер времени и памяти.
+
+``psutil`` — необязательная зависимость профилирования, и её отсутствие не
+должно ронять весь прогон: этот файл не собирался на чистой машине, и падал
+не он один, а весь pytest, то есть гейт краснел из-за инструмента, а не
+из-за кода. Ставится вместе с dev-зависимостями (`pip install -e .[dev]`).
+"""
+
 import os
-import psutil
+import time
+
 import pytest
+
+psutil = pytest.importorskip(
+    "psutil", reason="нужен для замера памяти: pip install -e .[dev]"
+)
 from datetime import datetime
 from apris.cheops.domain.models import TransactionEvent
 from apris.cheops.infrastructure.ml.oes_sampler import one_side_edge_sampling
