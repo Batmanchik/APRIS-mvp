@@ -1,5 +1,8 @@
 # Cheops AI — видение и план до РКНП
 
+> **Что это:** что строим и в каком порядке. Ведёт Claude Code.
+> Измерения — в [docs/RESULTS.md](docs/RESULTS.md), карта всех документов — [DOCS.md](DOCS.md).
+
 Обновлено 2026-09-06. Держится Claude Code. Исполнение: Antigravity (AGY) и
 Groq через `scripts/cheap_llm.py`.
 
@@ -171,7 +174,7 @@ Groq через `scripts/cheap_llm.py`.
 ## 7. Чего НЕ делаем до конца недели 5
 
 GNN, SHAP, federated learning, Kafka, массовый трек ИП/ТОО. Всё это в
-`CHEOPS_AI_DEVELOPMENT_PLAN.md` как дорожная карта и **называется дорожной
+`docs/PRODUCT_ROADMAP.md` как дорожная карта и **называется дорожной
 картой**, а не выдаётся за сделанное. GNN, обыгравший неустоявшийся бейзлайн,
 не измеряет ничего.
 

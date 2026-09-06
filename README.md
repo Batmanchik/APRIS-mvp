@@ -1,5 +1,11 @@
 # Cheops AI (Multi-Channel Fraud Intelligence System)
 
+> **Lost in the documents?** [DOCS.md](DOCS.md) is the map: what each file is
+> for, who keeps it, and where to write a new thing. The three that matter:
+> this README (how to run it), [PLAN.md](PLAN.md) (what is being built and in
+> what order), [docs/RESULTS.md](docs/RESULTS.md) (every measurement, with what
+> it does not prove).
+
 Cheops AI is a local MVP for detection of multi-channel financial fraud patterns (legal + crypto).
 It combines ML risk scoring, ETL for transaction logs, a FastAPI backend, and a Streamlit multipage frontend.
 
@@ -236,7 +242,7 @@ cases = build_cases(world)                    # labelled cases for detectors
 ```
 
 Details: [docs/SIMULATION_LAYER.md](docs/SIMULATION_LAYER.md).
-Measured findings: [docs/AUDIT_FINDINGS_2026-09-04.md](docs/AUDIT_FINDINGS_2026-09-04.md).
+Measured findings: [docs/reviews/AUDIT_FINDINGS_2026-09-04.md](docs/reviews/AUDIT_FINDINGS_2026-09-04.md).
 Plan: [docs/RESEARCH_PLAN_RKNP_2026.md](docs/RESEARCH_PLAN_RKNP_2026.md).
 
 ## Test and Quality Workflow
