@@ -138,8 +138,8 @@ def test_v2_engine_uses_trained_graph_branch_when_available() -> None:
         "feature_names": [
             "graph_density",
             "graph_hub_share",
-            "graph_component_compactness",
-            "graph_transitivity",
+            "graph_fanout_share",
+            "graph_relay_share",
             "graph_weight_cv_norm",
         ],
         "model": _FixedProbModel(0.79),

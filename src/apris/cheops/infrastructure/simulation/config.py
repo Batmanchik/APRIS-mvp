@@ -91,6 +91,7 @@ class SimulationConfig:
     salary_earners: int = 900
     freelancers: int = 260
     traders: int = 180
+    crypto_traders: int = 120       # hard negative: buy crypto honestly
     fast_spenders: int = 650        # hard negative 1: withdraws everything at once
     family_circles: int = 70        # groups, not accounts
     crowd_collections: int = 40     # hard negative 2: honest fan-in
@@ -99,6 +100,7 @@ class SimulationConfig:
 
     # Fraudulent structures
     mule_networks: int = 24
+    crypto_layering: int = 15       # crypto mixing / legal-to-crypto bridge
     pyramids: int = 30
 
     # Infrastructure

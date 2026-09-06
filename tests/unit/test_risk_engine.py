@@ -52,7 +52,7 @@ def test_explain_returns_top_k_sorted(
     result = explain(sample_features, top_k=3, model=dummy_model, feature_names=FEATURE_COLUMNS)
 
     assert len(result) == 3
-    assert result[0]["importance"] >= result[1]["importance"] >= result[2]["importance"]
+    assert float(result[0]["importance"]) >= float(result[1]["importance"]) >= float(result[2]["importance"])
 
 
 def test_explain_raises_when_feature_missing(

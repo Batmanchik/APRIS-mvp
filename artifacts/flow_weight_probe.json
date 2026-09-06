@@ -1,0 +1,26 @@
+{
+  "standalone_auc": {
+    "w_fast": 0.6351552299434209,
+    "w_slow": 0.5946763624933508
+  },
+  "model_auc": {
+    "base": 0.9595214266124708,
+    "enriched": 0.957362187319637,
+    "lift": -0.0021592392928337922
+  },
+  "permutation_importance": {
+    "w_fast": {
+      "mean": 0.002050993761787301,
+      "error": 0.00025789281310049776,
+      "beats_noise": true
+    },
+    "w_slow": {
+      "mean": 3.6671663684562096e-05,
+      "error": 1.12835888260554e-05,
+      "beats_noise": true
+    },
+    "noise_floor": 0.0,
+    "noise_floor_error": 0.0
+  },
+  "verdict": "Прирост превышает шумовой пол. Можно подключать признак."
+}

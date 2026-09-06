@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import pytest
 import requests
@@ -25,7 +25,7 @@ class _HttpErrorResponse:
         self.text = text
 
     def raise_for_status(self) -> None:
-        raise requests.HTTPError(response=self)
+        raise requests.HTTPError(response=cast(requests.Response, self))
 
     def json(self) -> dict[str, Any]:
         return {}

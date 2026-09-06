@@ -130,18 +130,20 @@ def _max_graph_depth(events: tuple[TransactionEvent, ...]) -> int:
         return 1
 
     max_depth = 1
-    for source in graph.nodes:
-        depths: dict[str, int] = {source: 0}
-        queue = [source]
-        while queue:
-            node = queue.pop(0)
-            for neighbor in graph.successors(node):
-                next_depth = depths[node] + 1
-                if next_depth > depths.get(neighbor, -1) and next_depth <= 8:
-                    depths[neighbor] = next_depth
-                    queue.append(neighbor)
-                    if next_depth > max_depth:
-                        max_depth = next_depth
+    # DFS to find longest simple path length (number of nodes in path)
+    def dfs(node, visited, current_depth):
+        nonlocal max_depth
+        if current_depth > max_depth:
+            max_depth = current_depth
+        for neighbor in graph.successors(node):
+            if neighbor not in visited:
+                visited.add(neighbor)
+                dfs(neighbor, visited, current_depth + 1)
+                visited.remove(neighbor)
+
+    for node in graph.nodes:
+        dfs(node, {node}, 1)
+        
     return max_depth
 
 
@@ -163,7 +165,27 @@ def map_events_to_typology_labels(
     mean_amount = total_amount / max(len(amounts), 1)
     small_parts = sum(1 for amount in amounts if amount < mean_amount * 0.35)
 
-    legal_to_crypto_bridge = int("legal" in channels and "crypto" in channels)
+    legal_to_crypto_bridge = 0
+    if "legal" in channels and "crypto" in channels:
+        fiat_in = {e.receiver_id for e in legal_events}
+        crypto_out = {e.sender_id for e in crypto_events}
+        bridge_nodes = fiat_in.intersection(crypto_out)
+        
+        crypto_in = {e.receiver_id for e in crypto_events}
+        fiat_out = {e.sender_id for e in legal_events}
+        bridge_nodes |= crypto_in.intersection(fiat_out)
+        
+        for node in bridge_nodes:
+            senders_fiat = {e.sender_id for e in legal_events if e.receiver_id == node}
+            receivers_crypto = {e.receiver_id for e in crypto_events if e.sender_id == node}
+            
+            senders_crypto = {e.sender_id for e in crypto_events if e.receiver_id == node}
+            receivers_fiat = {e.receiver_id for e in legal_events if e.sender_id == node}
+            
+            if (senders_fiat and receivers_crypto and senders_fiat != receivers_crypto) or \
+               (senders_crypto and receivers_fiat and senders_crypto != receivers_fiat):
+                legal_to_crypto_bridge = 1
+                break
     structured_splitting = int(unique_receivers >= 5 and small_parts >= max(4, len(amounts) // 3))
     crypto_mixing = int(len(crypto_events) >= 6 and len({e.receiver_id for e in crypto_events}) >= 4)
     graph_depth = _max_graph_depth(tuple(normalized))
